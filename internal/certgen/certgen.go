@@ -1,7 +1,6 @@
 package certgen
 
 import (
-	"crypto"
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/x509"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/sk8thing/arch-skm-go/internal/kconfig"
+	"github.com/sk8thing/arch-skm-go/internal/keygen"
 )
 
 var sigAlgoMap = map[kconfig.KeyType]map[kconfig.HashType]x509.SignatureAlgorithm{
@@ -41,7 +41,9 @@ func getSignatureAlgorithm(keyType kconfig.KeyType, hashType kconfig.HashType) (
 	return algo, nil
 }
 
-func GenerateCertificate(priv crypto.PrivateKey, pub crypto.PublicKey, config *kconfig.KConfig) ([]byte, error) {
+func GenerateCertificate(keys keygen.KeyPair, config *kconfig.KConfig) ([]byte, error) {
+	pub := keys.PublicKey()
+	priv := keys.PrivateKey()
 	algo, err := getSignatureAlgorithm(config.KeyType(), config.HashType())
 	if err != nil {
 		return nil, fmt.Errorf("invalid signature algorithm: %w", err)

@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	certExt = ".crt"
-	prvExt  = ".pem"
-	keyExt  = ".pem"
+	certSuffix = "_crt.crt"
+	prvSuffix  = "_prv.pem"
+	keySuffix  = "_key.pem"
 )
 
 func ExportCertificate(path string, filename string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) error {
@@ -25,9 +25,9 @@ func ExportCertificate(path string, filename string, cert []byte, keys keygen.Ke
 	if err != nil {
 		return err
 	}
-	crtPath := filepath.Join(dir, filename+certExt)
-	prvPath := filepath.Join(dir, filename+prvExt)
-	keyPath := filepath.Join(dir, filename+keyExt)
+	crtPath := filepath.Join(dir, filename+certSuffix)
+	prvPath := filepath.Join(dir, filename+prvSuffix)
+	keyPath := filepath.Join(dir, filename+keySuffix)
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(keys.PrivateKey())
 	if err != nil {
