@@ -18,12 +18,12 @@ const (
 	keySuffix  = "_key.pem"
 )
 
-func ExportCertificate(path string, filename string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) error {
+func ExportCertificate(path string, filename string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) (trustedKeysPath string, err error) {
 	timestamp := time.Now().Format("20060102-1504")
 	dir := filepath.Join(path, timestamp)
-	err := os.MkdirAll(dir, 0755)
+	err = os.MkdirAll(dir, 0755)
 	if err != nil {
-		return err
+		return "", err
 	}
 	crtPath := filepath.Join(dir, filename+certSuffix)
 	prvPath := filepath.Join(dir, filename+prvSuffix)
@@ -31,25 +31,25 @@ func ExportCertificate(path string, filename string, cert []byte, keys keygen.Ke
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(keys.PrivateKey())
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = writeCertificateDER(crtPath, cert)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = writeKeyBundlePEM(prvPath, privBytes, cert)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = writePrivateKeyPEM(keyPath, privBytes)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return keyPath, nil
 }
 
 func writeCertificateDER(filename string, cert []byte) error {

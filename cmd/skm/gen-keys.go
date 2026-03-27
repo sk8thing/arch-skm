@@ -56,9 +56,14 @@ var genKeysCmd = &cobra.Command{
 			return fmt.Errorf("failed to generate certificate: %w", err)
 		}
 
-		err = certgen.ExportCertificate(path, filename, cert, keys, refConfig)
+		trustedKeysPath, err := certgen.ExportCertificate(path, filename, cert, keys, refConfig)
 		if err != nil {
 			return fmt.Errorf("failed to export certificate: %w", err)
+		}
+
+		err = refConfig.UpdateTrustedKeys(trustedKeysPath)
+		if err != nil {
+			return fmt.Errorf("failed to update config trusted keys: %w", err)
 		}
 
 		return nil
