@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/sk8thing/arch-skm-go/internal/kconfig"
 	"github.com/sk8thing/arch-skm-go/internal/keygen"
@@ -19,8 +18,7 @@ const (
 )
 
 func ExportCertificate(path string, filename string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) (trustedKeysPath string, err error) {
-	timestamp := time.Now().Format("20060102-1504")
-	dir := filepath.Join(path, timestamp)
+	dir := filepath.Join(path, "keys")
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return "", err
