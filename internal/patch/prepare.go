@@ -14,6 +14,7 @@ const prefix = `  # Out-of-tree module signing
 
   msg2 "Rebuilding local signing key..."
 
+  skm install -p .
   cd certs-local
 
   msg2 "Updating kernel config with new key..."
