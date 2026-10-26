@@ -47,7 +47,12 @@ func ExportCertificate(path string, filename string, cert []byte, keys keygen.Ke
 		return "", err
 	}
 
-	return keyPath, nil
+	khashPath := filepath.Join(dir, "khash")
+	if err := os.WriteFile(khashPath, []byte(config.HashType()), 0644); err != nil {
+		return "", fmt.Errorf("write khash file: %w", err)
+	}
+
+	return prvPath, nil
 }
 
 func writeCertificateDER(filename string, cert []byte) error {

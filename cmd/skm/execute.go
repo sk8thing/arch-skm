@@ -1,5 +1,9 @@
 package skm
 
+import "os"
+
 func Execute() {
-	rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

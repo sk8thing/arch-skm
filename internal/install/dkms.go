@@ -6,10 +6,10 @@ import (
 )
 
 const kernelSignScript = `#!/bin/bash
-SIGN=/usr/lib/modules/$kernelver/build/certs-local/sign_module.py
+SIGN=/usr/lib/modules/$kernelver/build/certs-local/skm
 
 if [ -f $SIGN ] ;then
-    $SIGN -d ../$kernelver/$arch/module/
+    $SIGN sign -d ../$kernelver/$arch/module/
 else
    echo "kernel $kernelver doesn't have out of tree module signing tools"
 fi

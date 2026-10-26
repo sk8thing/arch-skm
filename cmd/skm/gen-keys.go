@@ -29,11 +29,15 @@ var genKeysCmd = &cobra.Command{
 		path := filepath.Dir(exePath)
 
 		var refConfig *kconfig.KConfig
+		configs := make([]*kconfig.KConfig, 0, len(matches))
 		for _, path := range matches {
 			config, err := kconfig.NewFromFile(path)
 			if err != nil {
 				return fmt.Errorf("failed to parse config %s: %w", path, err)
 			}
+
+			configs = append(configs, config)
+
 			if refConfig == nil {
 				refConfig = config
 				continue
@@ -61,9 +65,10 @@ var genKeysCmd = &cobra.Command{
 			return fmt.Errorf("failed to export certificate: %w", err)
 		}
 
-		err = refConfig.UpdateTrustedKeys(trustedKeysPath)
-		if err != nil {
-			return fmt.Errorf("failed to update config trusted keys: %w", err)
+		for _, config := range configs {
+			if err := config.UpdateTrustedKeys(trustedKeysPath); err != nil {
+				return fmt.Errorf("failed to update config trusted keys: %w", err)
+			}
 		}
 
 		return nil
