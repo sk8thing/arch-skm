@@ -25,15 +25,9 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
-		buildDir, _ := cmd.Flags().GetString("build-dir")
-		buildDir, err := expandHome(buildDir)
+		buildDir, err := resolveBuildDir(cmd)
 		if err != nil {
 			return err
-		}
-
-		buildDir, err = filepath.Abs(buildDir)
-		if err != nil {
-			return fmt.Errorf("resolve build directory: %w", err)
 		}
 
 		force, _ := cmd.Flags().GetBool("force")
@@ -76,6 +70,21 @@ func init() {
 	updateCmd.Flags().String("build-dir", defaultBuildDir(), "Directory containing kernel build directories")
 	updateCmd.Flags().Bool("force", false, "Remove and re-clone an existing kernel build directory instead of resetting it")
 	updateCmd.Flags().String("skm", "", "Path to the skm runtime helper (default: sibling skm or /usr/lib/skm/skm)")
+}
+
+func resolveBuildDir(cmd *cobra.Command) (string, error) {
+	buildDir, _ := cmd.Flags().GetString("build-dir")
+	buildDir, err := expandHome(buildDir)
+	if err != nil {
+		return "", err
+	}
+
+	buildDir, err = filepath.Abs(buildDir)
+	if err != nil {
+		return "", fmt.Errorf("resolve build directory: %w", err)
+	}
+
+	return buildDir, nil
 }
 
 func defaultBuildDir() string {
