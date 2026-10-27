@@ -8,7 +8,7 @@ import (
 var (
 	reMakeDocs = regexp.MustCompile(`(?m)^\s*make\s+htmldocs.*$`)
 	rePidDocs  = regexp.MustCompile(`(?m)^\s*local\s+pid_docs=.*$`)
-	reWait     = regexp.MustCompile(`(?m)^\s*wait\s+"\$\{pid_docs\}".*$`)
+	reWait     = regexp.MustCompile(`(?m)^\s*wait\s+"?\$\{?pid_docs\}?"?.*$`)
 )
 
 func patchBuildFunction(content string) (string, error) {

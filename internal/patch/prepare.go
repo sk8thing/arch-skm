@@ -9,18 +9,25 @@ const prefix = `  # Out-of-tree module signing
   #
   ######################################################
   # this is added at the start of prepare() & replaces #
-  # 'cd $$_srcname'                                     #
+  # 'cd $_srcname'                                     #
   ######################################################
 
   msg2 "Rebuilding local signing key..."
 
-  skm install -p .
-  cd certs-local
+  local certs_local=$srcdir/certs-local
+  if [[ ! -d "$startdir/certs-local" ]]; then
+    error "Missing $startdir/certs-local; run 'skmctl update <kernel>' first"
+    exit 1
+  fi
+
+  rm -rf $certs_local
+  cp -a $startdir/certs-local $certs_local
+  cd $certs_local
 
   msg2 "Updating kernel config with new key..."
   ./skm gen-keys --config '../config*'
 
-  cd ../$$_srcname
+  cd ../$_srcname
 `
 
 var (
@@ -35,7 +42,7 @@ func patchPrepareFunction(content string) (string, error) {
 	}
 
 	block = commentLine(block, reCd)
-	block = rePrepare.ReplaceAllString(block, "prepare() {\n"+prefix)
+	block = rePrepare.ReplaceAllLiteralString(block, "prepare() {\n"+prefix)
 
 	updatedContent := content[:start] + block + content[end:]
 
