@@ -1,0 +1,39 @@
+BINDIR   ?= bin
+GO       ?= go
+GOFMT    ?= gofmt
+GOFLAGS  ?=
+PACKAGES ?= ./cmd/... ./internal/...
+
+SKM    := $(BINDIR)/skm
+SKMCTL := $(BINDIR)/skmctl
+
+all: build
+
+build:
+	@mkdir -p $(BINDIR)
+	$(GO) build $(GOFLAGS) -o $(SKM) ./cmd/skm
+	$(GO) build $(GOFLAGS) -o $(SKMCTL) ./cmd/skmctl
+
+install: build
+	install -Dm755 $(SKMCTL) $(DESTDIR)/usr/bin/skmctl
+	install -Dm755 $(SKM) $(DESTDIR)$/usr/lib/skm/skm
+
+uninstall:
+	$(RM) $(DESTDIR)/usr/bin/skmctl
+	$(RM) $(DESTDIR)/usr/lib/skm/skm
+
+test:
+	$(GO) test ./...
+
+vet:
+	$(GO) vet $(PACKAGES)
+
+check: vet test
+
+fmt:
+	$(GOFMT) -s -w cmd internal
+
+clean:
+	$(RM) -r $(BINDIR)
+
+.PHONY: all build install uninstall test vet check fmt clean
