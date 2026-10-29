@@ -1,4 +1,4 @@
-package skm
+package main
 
 import (
 	"fmt"

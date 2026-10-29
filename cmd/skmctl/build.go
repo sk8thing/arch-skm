@@ -25,7 +25,12 @@ var buildCmd = &cobra.Command{
 			return err
 		}
 
-		buildDir, err := resolveBuildDir(cmd)
+		cfg, err := loadConfig()
+		if err != nil {
+			return err
+		}
+
+		buildDir, err := resolveBuildDir(cfg)
 		if err != nil {
 			return err
 		}
@@ -43,6 +48,7 @@ var buildCmd = &cobra.Command{
 
 		return makepkg.Build(cmd.Context(), makepkg.Options{
 			Dir:        dir,
+			MakepkgDir: cfg.MakepkgDir,
 			SyncDeps:   syncDeps,
 			CleanBuild: cleanBuild,
 			NoConfirm:  noConfirm,
@@ -57,7 +63,6 @@ var buildCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(buildCmd)
 
-	buildCmd.Flags().String("build-dir", defaultBuildDir(), "Directory containing kernel build directories")
 	buildCmd.Flags().Bool("syncdeps", true, "Install missing dependencies with pacman (-s)")
 	buildCmd.Flags().Bool("cleanbuild", false, "Remove the existing source directory before building (-C)")
 	buildCmd.Flags().Bool("noconfirm", false, "Do not ask for confirmation (--noconfirm)")

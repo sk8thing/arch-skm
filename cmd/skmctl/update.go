@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sk8thing/arch-skm-go/internal/helper"
 	"github.com/sk8thing/arch-skm-go/internal/install"
@@ -25,7 +23,12 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
-		buildDir, err := resolveBuildDir(cmd)
+		cfg, err := loadConfig()
+		if err != nil {
+			return err
+		}
+
+		buildDir, err := resolveBuildDir(cfg)
 		if err != nil {
 			return err
 		}
@@ -67,50 +70,6 @@ var updateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().String("build-dir", defaultBuildDir(), "Directory containing kernel build directories")
 	updateCmd.Flags().Bool("force", false, "Remove and re-clone an existing kernel build directory instead of resetting it")
 	updateCmd.Flags().String("skm", "", "Path to the skm runtime helper (default: sibling skm or /usr/lib/skm/skm)")
-}
-
-func resolveBuildDir(cmd *cobra.Command) (string, error) {
-	buildDir, _ := cmd.Flags().GetString("build-dir")
-	buildDir, err := expandHome(buildDir)
-	if err != nil {
-		return "", err
-	}
-
-	buildDir, err = filepath.Abs(buildDir)
-	if err != nil {
-		return "", fmt.Errorf("resolve build directory: %w", err)
-	}
-
-	return buildDir, nil
-}
-
-func defaultBuildDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-
-	return filepath.Join(home, "build")
-}
-
-func expandHome(path string) (string, error) {
-	if path == "" {
-		return "", fmt.Errorf("build directory is required")
-	}
-	if path != "~" && !strings.HasPrefix(path, "~/") {
-		return path, nil
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home directory: %w", err)
-	}
-	if path == "~" {
-		return home, nil
-	}
-
-	return filepath.Join(home, path[2:]), nil
 }

@@ -1,8 +1,8 @@
-package skm
+package main
 
 import "os"
 
-func Execute() {
+func main() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}

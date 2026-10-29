@@ -1,4 +1,3 @@
-// Package makepkg runs makepkg inside a prepared kernel build directory.
 package makepkg
 
 import (
@@ -12,6 +11,7 @@ import (
 
 type Options struct {
 	Dir        string
+	MakepkgDir string
 	SyncDeps   bool
 	CleanBuild bool
 	NoConfirm  bool
@@ -62,10 +62,25 @@ func Build(ctx context.Context, opts Options) error {
 	cmd.Stdin = opts.Stdin
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
+	if opts.MakepkgDir != "" {
+		cmd.Env = setEnv(os.Environ(), "BUILDDIR", opts.MakepkgDir)
+	}
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("makepkg %s: %w", strings.Join(args, " "), err)
 	}
 
 	return nil
+}
+
+func setEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	updated := make([]string, 0, len(env)+1)
+	for _, entry := range env {
+		if !strings.HasPrefix(entry, prefix) {
+			updated = append(updated, entry)
+		}
+	}
+
+	return append(updated, prefix+value)
 }
