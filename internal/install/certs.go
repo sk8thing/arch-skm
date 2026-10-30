@@ -13,8 +13,6 @@ import (
 
 const keysDirName = "keys"
 
-// InstallCertificates copies the current binary and generated signing keys into
-// destPath, which is expected to be the destination certs-local directory.
 func InstallCertificates(destPath string) error {
 	exePath, err := utils.GetExecutablePath()
 	if err != nil {

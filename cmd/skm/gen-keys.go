@@ -16,7 +16,6 @@ var genKeysCmd = &cobra.Command{
 	Short: "Generate new key pair for signing out of tree kernel modules",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		configGlob, _ := cmd.Flags().GetString("config")
-		filename, _ := cmd.Flags().GetString("prefix")
 		matches, err := filepath.Glob(configGlob)
 		if err != nil || len(matches) == 0 {
 			return fmt.Errorf("no kernel config files found matching: %s", configGlob)
@@ -60,7 +59,7 @@ var genKeysCmd = &cobra.Command{
 			return fmt.Errorf("failed to generate certificate: %w", err)
 		}
 
-		trustedKeysPath, err := certgen.ExportCertificate(path, filename, cert, keys, refConfig)
+		trustedKeysPath, err := certgen.ExportCertificate(path, cert, keys, refConfig)
 		if err != nil {
 			return fmt.Errorf("failed to export certificate: %w", err)
 		}
@@ -79,5 +78,4 @@ func init() {
 	rootCmd.AddCommand(genKeysCmd)
 
 	genKeysCmd.Flags().StringP("config", "c", "./config", "Kernel config file(s), use quotes for wildcards e.g. '../config*'")
-	genKeysCmd.Flags().StringP("prefix", "p", "signing", "Name prefix for generated certificate and key files")
 }

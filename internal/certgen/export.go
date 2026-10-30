@@ -12,20 +12,21 @@ import (
 )
 
 const (
+	prefix     = "signing"
 	certSuffix = "_crt.crt"
 	prvSuffix  = "_prv.pem"
 	keySuffix  = "_key.pem"
 )
 
-func ExportCertificate(path string, filename string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) (trustedKeysPath string, err error) {
+func ExportCertificate(path string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) (trustedKeysPath string, err error) {
 	dir := filepath.Join(path, "keys")
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
 		return "", err
 	}
-	crtPath := filepath.Join(dir, filename+certSuffix)
-	prvPath := filepath.Join(dir, filename+prvSuffix)
-	keyPath := filepath.Join(dir, filename+keySuffix)
+	crtPath := filepath.Join(dir, prefix+certSuffix)
+	prvPath := filepath.Join(dir, prefix+prvSuffix)
+	keyPath := filepath.Join(dir, prefix+keySuffix)
 
 	privBytes, err := x509.MarshalPKCS8PrivateKey(keys.PrivateKey())
 	if err != nil {

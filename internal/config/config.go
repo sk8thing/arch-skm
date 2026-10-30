@@ -58,7 +58,6 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
-// Default returns the built-in configuration.
 func Default() (Config, error) {
 	home, err := configHome()
 	if err != nil {
@@ -76,7 +75,6 @@ func Default() (Config, error) {
 	}, nil
 }
 
-// DefaultBuildDir returns the default BUILD_DIR without reading a config file.
 func DefaultBuildDir() string {
 	cfg, err := Default()
 	if err != nil {
