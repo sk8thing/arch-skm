@@ -11,12 +11,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const buildExample = `  # Build linux-hardened kernel
+  skmctl build linux-hardened
+
+  # Clean and build linux-hardened kernel
+  skmctl build linux-hardened -C
+
+  # Build linux-hardened kernel with extra makepkg flags
+  skmctl build linux-hardened -- -j$(nproc)`
 const signingMarker = "Out-of-tree module signing"
 
 var buildCmd = &cobra.Command{
-	Use:       "build <kernel> [-- <makepkg args>...]",
-	Short:     "Build a prepared kernel package with makepkg",
-	Long:      "Run makepkg for a kernel build directory prepared by 'skmctl update'. The directory must contain a patched PKGBUILD and a seeded certs-local directory. Arguments after '--' are passed through to makepkg.",
+	Use:       "build [kernel] [-- <makepkg args>...]",
+	Short:     "Build a patched kernel with makepkg",
+	Example:   buildExample,
 	Args:      cobra.MinimumNArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -61,11 +69,11 @@ var buildCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(buildCmd)
-
-	buildCmd.Flags().Bool("syncdeps", true, "Install missing dependencies with pacman (-s)")
-	buildCmd.Flags().Bool("cleanbuild", false, "Remove the existing source directory before building (-C)")
+	buildCmd.Flags().BoolP("syncdeps", "s", true, "Install missing dependencies with pacman (-s)")
+	buildCmd.Flags().BoolP("cleanbuild", "C", false, "Remove the existing source directory before building (-C)")
 	buildCmd.Flags().Bool("noconfirm", false, "Do not ask for confirmation (--noconfirm)")
+
+	rootCmd.AddCommand(buildCmd)
 }
 
 func validateBuildDir(dir string) error {

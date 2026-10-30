@@ -11,10 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const installExample = `  # Install linux-hardened kernel
+  skmctl install linux-hardened`
+
 var installCmd = &cobra.Command{
-	Use:       "install <kernel>",
-	Short:     "Install built kernel packages with pacman",
-	Long:      "Install the packages built for a kernel with pacman -U. The package list is taken from the current PKGBUILD and the packages must already exist.",
+	Use:       "install [kernel]",
+	Short:     "Install built kernel packages using pacman",
+	Example:   installExample,
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,9 +54,9 @@ var installCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(installCmd)
-
 	installCmd.Flags().Bool("noconfirm", false, "Do not ask for confirmation (--noconfirm)")
+
+	rootCmd.AddCommand(installCmd)
 }
 
 func listBuiltPackages(cmd *cobra.Command, dir string, variant string) ([]string, error) {
@@ -74,7 +77,7 @@ func listBuiltPackages(cmd *cobra.Command, dir string, variant string) ([]string
 	}
 
 	var packages []string
-	for _, line := range strings.Split(string(output), "\n") {
+	for line := range strings.SplitSeq(string(output), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue

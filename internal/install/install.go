@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-func SeedBuildDir(destPath, skmPath string) error {
+func PrepareBuildDir(destPath, skmPath string) error {
 	if skmPath == "" {
 		return fmt.Errorf("skm binary path is required")
 	}

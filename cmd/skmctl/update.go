@@ -11,10 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const updateExample = `  # Clone and prepare linux-hardened kernel
+  skmctl update linux-hardened`
+
 var updateCmd = &cobra.Command{
-	Use:       "update <kernel>",
-	Short:     "Clone or update a kernel package, patch it, and seed its build directory",
-	Long:      "Clone or update the Arch Linux packaging repository for a kernel, patch the PKGBUILD for local module signing, and seed certs-local in its build directory. Existing checkouts are reset to their upstream branch before patching; untracked files such as certs-local are preserved.",
+	Use:       "update [kernel]",
+	Short:     "Clone or update a kernel package, patch it, and prepare build directory",
+	Example:   updateExample,
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -58,18 +61,18 @@ var updateCmd = &cobra.Command{
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "Patched %s\n", filepath.Join(dest, "PKGBUILD"))
 
-		if err := install.SeedBuildDir(dest, skmPath); err != nil {
-			return fmt.Errorf("seed build directory %q: %w", dest, err)
+		if err := install.PrepareBuildDir(dest, skmPath); err != nil {
+			return fmt.Errorf("prepare build directory %q: %w", dest, err)
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Seeded %s\n", filepath.Join(dest, "certs-local"))
+		fmt.Fprintf(cmd.OutOrStdout(), "Prepared %s\n", filepath.Join(dest, "certs-local"))
 		return nil
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(updateCmd)
-
-	updateCmd.Flags().Bool("force", false, "Remove and re-clone an existing kernel build directory instead of resetting it")
+	updateCmd.Flags().BoolP("force", "f", false, "Remove and re-clone an existing kernel build directory instead of resetting it")
 	updateCmd.Flags().String("skm", "", "Path to the skm runtime helper (default: sibling skm or /usr/lib/skm/skm)")
+
+	rootCmd.AddCommand(updateCmd)
 }
