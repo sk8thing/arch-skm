@@ -25,7 +25,7 @@ const prefix = `  # Out-of-tree module signing
   cd $certs_local
 
   msg2 "Updating kernel config with new key..."
-  ./skm gen-keys --config '../config*'
+  ./skm gen-keys '../config*'
 
   cd ../$_srcname
 `

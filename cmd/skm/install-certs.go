@@ -8,12 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const installCertsExample = `  # Install keys and binary into certs-local
+  skm install-certs ./certs-local`
+
 var installCertsCmd = &cobra.Command{
-	Use:   "install-certs <destination>",
-	Short: "Install signing keys and binary into a kernel build directory",
-	Args:  cobra.ExactArgs(1),
+	Use:     "install-certs [destination]",
+	Short:   "Install signing keys and binary into kernel build directory",
+	Example: installCertsExample,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		destPath, err := filepath.Abs(args[0])
+		dir := args[0]
+		destPath, err := filepath.Abs(dir)
 		if err != nil {
 			return fmt.Errorf("failed to resolve destination: %w", err)
 		}

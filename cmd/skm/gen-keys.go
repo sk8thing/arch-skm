@@ -11,11 +11,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const genKeysExample = `  # Read config from current directory
+  skm gen-keys ./config.x86_64
+
+  # Use quotes for wildcards
+  skm gen-keys './config*'`
+
 var genKeysCmd = &cobra.Command{
-	Use:   "gen-keys",
-	Short: "Generate new key pair for signing out of tree kernel modules",
+	Use:     "gen-keys [config]",
+	Short:   "Generate new key pair",
+	Example: genKeysExample,
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		configGlob, _ := cmd.Flags().GetString("config")
+		configGlob := args[0]
 		matches, err := filepath.Glob(configGlob)
 		if err != nil || len(matches) == 0 {
 			return fmt.Errorf("no kernel config files found matching: %s", configGlob)
@@ -76,6 +84,4 @@ var genKeysCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(genKeysCmd)
-
-	genKeysCmd.Flags().StringP("config", "c", "./config", "Kernel config file(s), use quotes for wildcards e.g. '../config*'")
 }

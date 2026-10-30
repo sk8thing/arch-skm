@@ -7,20 +7,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const signExample = `  # Sign a single kernel module
+  skm sign ./module.ko
+
+  # Sign multiple kernel modules
+  skm sign ./module1.ko ./module2.ko.zst ./module3.ko.gz
+
+  # Sign all kernel modules found in a directory
+  skm sign --dir ./modules`
+
+var (
+	dirFlag string
+)
+
 var signCmd = &cobra.Command{
-	Use:   "sign [modules...]",
-	Short: "Sign out of tree kernel modules",
+	Use:     "sign [modules...]",
+	Short:   "Sign out of tree kernel modules",
+	Example: signExample,
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if dirFlag != "" && len(args) > 0 {
+			return fmt.Errorf("cannot use module directory together with module list")
+		}
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, _ := cmd.Flags().GetString("directory")
-
 		modules := args
-		if dir != "" {
-			if len(args) > 0 {
-				return fmt.Errorf("cannot use a module directory together with module paths")
-			}
-
+		if dirFlag != "" {
 			var err error
-			modules, err = sign.FindModules(dir)
+			modules, err = sign.FindModules(dirFlag)
 			if err != nil {
 				return fmt.Errorf("failed to find modules: %w", err)
 			}
@@ -39,7 +54,7 @@ var signCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(signCmd)
+	signCmd.Flags().StringVarP(&dirFlag, "dir", "d", "", "Directory containing kernel modules to sign")
 
-	signCmd.Flags().StringP("directory", "d", "", "Directory containing kernel modules to sign")
+	rootCmd.AddCommand(signCmd)
 }
