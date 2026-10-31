@@ -1,6 +1,7 @@
 package sign
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -20,7 +21,7 @@ const (
 	defaultHashType = "sha512"
 )
 
-func SignModules(paths []string, jobs int) error {
+func SignModules(ctx context.Context, paths []string, jobs int) error {
 	if len(paths) == 0 {
 		return fmt.Errorf("no modules to sign")
 	}
@@ -30,12 +31,12 @@ func SignModules(paths []string, jobs int) error {
 		return err
 	}
 
-	return signAll(paths, jobs, func(path string) error {
-		return signModule(signFile, keyFile, certFile, hashType, path)
+	return signAll(ctx, paths, jobs, func(ctx context.Context, path string) error {
+		return signModule(ctx, signFile, keyFile, certFile, hashType, path)
 	})
 }
 
-func signAll(paths []string, jobs int, sign func(string) error) error {
+func signAll(ctx context.Context, paths []string, jobs int, sign func(context.Context, string) error) error {
 	paths = uniquePaths(paths)
 	workers := resolveJobs(jobs, len(paths))
 	errs := make([]error, len(paths))
@@ -51,15 +52,34 @@ func signAll(paths []string, jobs int, sign func(string) error) error {
 	for range workers {
 		wg.Go(func() {
 			for item := range work {
-				if err := sign(item.path); err != nil {
+				if err := ctx.Err(); err != nil {
+					errs[item.index] = fmt.Errorf("sign module %q: %w", item.path, err)
+					continue
+				}
+				if err := sign(ctx, item.path); err != nil {
 					errs[item.index] = fmt.Errorf("sign module %q: %w", item.path, err)
 				}
 			}
 		})
 	}
 
+dispatch:
 	for index, path := range paths {
-		work <- job{index: index, path: path}
+		if err := ctx.Err(); err != nil {
+			for i := index; i < len(paths); i++ {
+				errs[i] = fmt.Errorf("sign module %q: %w", paths[i], err)
+			}
+			break
+		}
+
+		select {
+		case work <- job{index: index, path: path}:
+		case <-ctx.Done():
+			for i := index; i < len(paths); i++ {
+				errs[i] = fmt.Errorf("sign module %q: %w", paths[i], ctx.Err())
+			}
+			break dispatch
+		}
 	}
 	close(work)
 	wg.Wait()

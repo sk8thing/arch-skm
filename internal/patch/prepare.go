@@ -5,7 +5,7 @@ import (
 	"regexp"
 )
 
-const prefix = `  # Out-of-tree module signing
+const prefix = `  # ` + SigningMarker + `
   #
   ######################################################
   # this is added at the start of prepare() & replaces #

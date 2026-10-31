@@ -21,27 +21,16 @@ var installCmd = &cobra.Command{
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		variant := args[0]
-		if _, err := kernel.RepoURL(variant); err != nil {
-			return err
-		}
-
-		cfg, err := loadConfig()
+		t, err := resolveTarget(args[0])
 		if err != nil {
 			return err
 		}
 
-		buildDir, err := resolveBuildDir(cfg)
-		if err != nil {
+		if err := validateBuildDir(t.Dir); err != nil {
 			return err
 		}
 
-		dir := filepath.Join(buildDir, variant)
-		if err := validateBuildDir(dir); err != nil {
-			return err
-		}
-
-		packages, err := listBuiltPackages(cmd, dir, variant)
+		packages, err := listBuiltPackages(cmd, t.Dir, t.Variant)
 		if err != nil {
 			return err
 		}

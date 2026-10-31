@@ -3,7 +3,7 @@ package patch
 import "fmt"
 
 const suffix = `
-  # Out-of-tree module signing
+  # ` + SigningMarker + `
   ##################################################
   # this is added at the end of _package-headers() #
   ##################################################

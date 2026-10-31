@@ -6,7 +6,11 @@ import (
 	"path/filepath"
 )
 
-const pkgbuildFile = "PKGBUILD"
+const (
+	pkgbuildFile = "PKGBUILD"
+
+	SigningMarker = "Out-of-tree module signing"
+)
 
 var patches = []func(string) (string, error){
 	patchPrepareFunction,

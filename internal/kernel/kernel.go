@@ -10,27 +10,33 @@ import (
 	"strings"
 )
 
-var variants = []string{"linux", "linux-hardened", "linux-lts"}
+type definition struct {
+	Name string
+	URL  string
+}
 
-var repoURLs = map[string]string{
-	"linux":          "https://gitlab.archlinux.org/archlinux/packaging/packages/linux.git",
-	"linux-hardened": "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-hardened.git",
-	"linux-lts":      "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-lts.git",
+var definitions = []definition{
+	{Name: "linux", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux.git"},
+	{Name: "linux-hardened", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-hardened.git"},
+	{Name: "linux-lts", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-lts.git"},
 }
 
 func Supported() []string {
-	supported := make([]string, len(variants))
-	copy(supported, variants)
+	supported := make([]string, len(definitions))
+	for i, definition := range definitions {
+		supported[i] = definition.Name
+	}
 	return supported
 }
 
 func RepoURL(variant string) (string, error) {
-	url, ok := repoURLs[variant]
-	if !ok {
-		return "", fmt.Errorf("unsupported kernel %q (supported: %s)", variant, strings.Join(variants, ", "))
+	for _, definition := range definitions {
+		if definition.Name == variant {
+			return definition.URL, nil
+		}
 	}
 
-	return url, nil
+	return "", fmt.Errorf("unsupported kernel %q (supported: %s)", variant, strings.Join(Supported(), ", "))
 }
 
 type UpdateOptions struct {

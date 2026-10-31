@@ -52,7 +52,7 @@ var signCmd = &cobra.Command{
 			return fmt.Errorf("no modules to sign")
 		}
 
-		if err := sign.SignModules(modules, jobsFlag); err != nil {
+		if err := sign.SignModules(cmd.Context(), modules, jobsFlag); err != nil {
 			return fmt.Errorf("failed to sign modules: %w", err)
 		}
 

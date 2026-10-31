@@ -8,6 +8,7 @@ import (
 
 	"github.com/sk8thing/arch-skm-go/internal/kernel"
 	"github.com/sk8thing/arch-skm-go/internal/makepkg"
+	"github.com/sk8thing/arch-skm-go/internal/patch"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,6 @@ const buildExample = `  # Build linux-hardened kernel
 
   # Build linux-hardened kernel with extra makepkg flags
   skmctl build linux-hardened -- -j$(nproc)`
-const signingMarker = "Out-of-tree module signing"
 
 var buildCmd = &cobra.Command{
 	Use:       "build [kernel] [-- <makepkg args>...]",
@@ -28,23 +28,12 @@ var buildCmd = &cobra.Command{
 	Args:      cobra.MinimumNArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		variant := args[0]
-		if _, err := kernel.RepoURL(variant); err != nil {
-			return err
-		}
-
-		cfg, err := loadConfig()
+		t, err := resolveTarget(args[0])
 		if err != nil {
 			return err
 		}
 
-		buildDir, err := resolveBuildDir(cfg)
-		if err != nil {
-			return err
-		}
-
-		dir := filepath.Join(buildDir, variant)
-		if err := validateBuildDir(dir); err != nil {
+		if err := validateBuildDir(t.Dir); err != nil {
 			return err
 		}
 
@@ -52,11 +41,11 @@ var buildCmd = &cobra.Command{
 		cleanBuild, _ := cmd.Flags().GetBool("cleanbuild")
 		noConfirm, _ := cmd.Flags().GetBool("noconfirm")
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Building %s in %s\n", variant, dir)
+		fmt.Fprintf(cmd.OutOrStdout(), "Building %s in %s\n", t.Variant, t.Dir)
 
 		return makepkg.Build(cmd.Context(), makepkg.Options{
-			Dir:        dir,
-			MakepkgDir: cfg.MakepkgDir,
+			Dir:        t.Dir,
+			MakepkgDir: t.Config.MakepkgDir,
 			SyncDeps:   syncDeps,
 			CleanBuild: cleanBuild,
 			NoConfirm:  noConfirm,
@@ -96,7 +85,7 @@ func validateBuildDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("read PKGBUILD %q: %w", pkgbuildPath, err)
 	}
-	if !bytes.Contains(content, []byte(signingMarker)) {
+	if !bytes.Contains(content, []byte(patch.SigningMarker)) {
 		return fmt.Errorf("PKGBUILD %q is not patched for local module signing; run 'skmctl update %s' first", pkgbuildPath, filepath.Base(dir))
 	}
 

@@ -2,6 +2,7 @@ package sign
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -17,7 +18,7 @@ const (
 	tempPattern     = ".skm-*"
 )
 
-func signModule(signFile, keyFile, certFile, hashType, modPath string) error {
+func signModule(ctx context.Context, signFile, keyFile, certFile, hashType, modPath string) error {
 	info, err := os.Stat(modPath)
 	if err != nil {
 		return fmt.Errorf("access module: %w", err)
@@ -28,13 +29,13 @@ func signModule(signFile, keyFile, certFile, hashType, modPath string) error {
 
 	ext := filepath.Ext(modPath)
 	if isCompressed(ext) {
-		return signCompressedModule(signFile, keyFile, certFile, hashType, modPath, ext, info)
+		return signCompressedModule(ctx, signFile, keyFile, certFile, hashType, modPath, ext, info)
 	}
 
-	return signPlainModule(signFile, keyFile, certFile, hashType, modPath, info)
+	return signPlainModule(ctx, signFile, keyFile, certFile, hashType, modPath, info)
 }
 
-func signPlainModule(signFile, keyFile, certFile, hashType, modPath string, info os.FileInfo) error {
+func signPlainModule(ctx context.Context, signFile, keyFile, certFile, hashType, modPath string, info os.FileInfo) error {
 	signed, err := isSignedFile(modPath)
 	if err != nil {
 		return err
@@ -47,19 +48,19 @@ func signPlainModule(signFile, keyFile, certFile, hashType, modPath string, info
 	defer os.Remove(tmpPath)
 
 	if signed {
-		if err := stripSignature(tmpPath); err != nil {
+		if err := stripSignature(ctx, tmpPath); err != nil {
 			return err
 		}
 	}
 
-	if err := runSigner(signFile, hashType, keyFile, certFile, tmpPath); err != nil {
+	if err := runSigner(ctx, signFile, hashType, keyFile, certFile, tmpPath); err != nil {
 		return err
 	}
 
 	return replaceModule(tmpPath, modPath, info.Mode().Perm())
 }
 
-func signCompressedModule(signFile, keyFile, certFile, hashType, modPath, ext string, info os.FileInfo) error {
+func signCompressedModule(ctx context.Context, signFile, keyFile, certFile, hashType, modPath, ext string, info os.FileInfo) error {
 	data, err := readModule(modPath, ext)
 	if err != nil {
 		return err
@@ -72,13 +73,13 @@ func signCompressedModule(signFile, keyFile, certFile, hashType, modPath, ext st
 	defer os.Remove(tmpPath)
 
 	if isSigned(data) {
-		if err := stripSignature(tmpPath); err != nil {
+		if err := stripSignature(ctx, tmpPath); err != nil {
 			return err
 		}
 	}
 	data = nil
 
-	if err := runSigner(signFile, hashType, keyFile, certFile, tmpPath); err != nil {
+	if err := runSigner(ctx, signFile, hashType, keyFile, certFile, tmpPath); err != nil {
 		return err
 	}
 
@@ -201,8 +202,8 @@ func isSigned(data []byte) bool {
 	return bytes.Contains(data[start:], []byte(signatureMarker))
 }
 
-func stripSignature(path string) error {
-	output, err := exec.Command(stripBinary, "--strip-debug", path).CombinedOutput()
+func stripSignature(ctx context.Context, path string) error {
+	output, err := exec.CommandContext(ctx, stripBinary, "--strip-debug", path).CombinedOutput()
 	if err != nil {
 		return commandError("strip module signature", err, output)
 	}
@@ -210,8 +211,8 @@ func stripSignature(path string) error {
 	return nil
 }
 
-func runSigner(signFile, hashType, keyFile, certFile, modPath string) error {
-	output, err := exec.Command(signFile, hashType, keyFile, certFile, modPath).CombinedOutput()
+func runSigner(ctx context.Context, signFile, hashType, keyFile, certFile, modPath string) error {
+	output, err := exec.CommandContext(ctx, signFile, hashType, keyFile, certFile, modPath).CombinedOutput()
 	if err != nil {
 		return commandError("run kernel signer", err, output)
 	}

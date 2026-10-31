@@ -21,17 +21,7 @@ var updateCmd = &cobra.Command{
 	Args:      cobra.ExactArgs(1),
 	ValidArgs: kernel.Supported(),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		variant := args[0]
-		if _, err := kernel.RepoURL(variant); err != nil {
-			return err
-		}
-
-		cfg, err := loadConfig()
-		if err != nil {
-			return err
-		}
-
-		buildDir, err := resolveBuildDir(cfg)
+		t, err := resolveTarget(args[0])
 		if err != nil {
 			return err
 		}
@@ -43,11 +33,11 @@ var updateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Fprintf(cmd.OutOrStdout(), "Updating %s in %s\n", variant, buildDir)
+		fmt.Fprintf(cmd.OutOrStdout(), "Updating %s in %s\n", t.Variant, t.BuildDir)
 
 		dest, err := kernel.UpdateRepo(cmd.Context(), kernel.UpdateOptions{
-			Kernel:   variant,
-			BuildDir: buildDir,
+			Kernel:   t.Variant,
+			BuildDir: t.BuildDir,
 			Force:    force,
 			Stdout:   cmd.OutOrStdout(),
 			Stderr:   cmd.ErrOrStderr(),
