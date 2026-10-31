@@ -1,9 +1,13 @@
-BINDIR   ?= bin
-GO       ?= go
-GOFMT    ?= gofmt
-GOFLAGS  ?=
-LDFLAGS  ?= -s -w
-PACKAGES ?= ./cmd/... ./internal/...
+BINDIR      ?= bin
+GO          ?= go
+GOFMT       ?= gofmt
+GOFLAGS     ?=
+LDFLAGS     ?= -s -w
+PACKAGES    ?= ./cmd/... ./internal/...
+VERSION     ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+VERSION_PKG := github.com/sk8thing/arch-skm-go/internal/version
+
+VERSION_LDFLAGS := -X $(VERSION_PKG).Version=$(VERSION)
 
 SKM    := $(BINDIR)/skm
 SKMCTL := $(BINDIR)/skmctl
@@ -12,8 +16,8 @@ all: build
 
 build:
 	@mkdir -p $(BINDIR)
-	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(SKM) ./cmd/skm
-	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(SKMCTL) ./cmd/skmctl
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKM) ./cmd/skm
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKMCTL) ./cmd/skmctl
 
 install: build
 	install -Dm755 $(SKMCTL) $(DESTDIR)/usr/bin/skmctl
