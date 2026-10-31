@@ -2,6 +2,7 @@ BINDIR   ?= bin
 GO       ?= go
 GOFMT    ?= gofmt
 GOFLAGS  ?=
+LDFLAGS  ?= -s -w
 PACKAGES ?= ./cmd/... ./internal/...
 
 SKM    := $(BINDIR)/skm
@@ -11,12 +12,12 @@ all: build
 
 build:
 	@mkdir -p $(BINDIR)
-	$(GO) build $(GOFLAGS) -o $(SKM) ./cmd/skm
-	$(GO) build $(GOFLAGS) -o $(SKMCTL) ./cmd/skmctl
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(SKM) ./cmd/skm
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS)' -o $(SKMCTL) ./cmd/skmctl
 
 install: build
 	install -Dm755 $(SKMCTL) $(DESTDIR)/usr/bin/skmctl
-	install -Dm755 $(SKM) $(DESTDIR)$/usr/lib/skm/skm
+	install -Dm755 $(SKM) $(DESTDIR)/usr/lib/skm/skm
 
 uninstall:
 	$(RM) $(DESTDIR)/usr/bin/skmctl

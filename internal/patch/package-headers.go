@@ -33,7 +33,7 @@ const suffix = `
 func patchPackageHeadersFunction(content string) (string, error) {
 	block, start, end, err := getFunctionBlock("_package-headers", content)
 	if err != nil {
-		return "", fmt.Errorf("failed to read prepare function block: %w", err)
+		return "", fmt.Errorf("failed to read _package-headers function block: %w", err)
 	}
 
 	updatedBlock := block[:len(block)-1] + suffix + "\n}"

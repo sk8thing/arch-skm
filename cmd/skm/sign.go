@@ -14,10 +14,14 @@ const signExample = `  # Sign a single kernel module
   skm sign ./module1.ko ./module2.ko.zst ./module3.ko.gz
 
   # Sign all kernel modules found in a directory
-  skm sign --dir ./modules`
+  skm sign --dir ./modules
+
+  # Limit the number of modules signed concurrently
+  skm sign --dir ./modules --jobs 4`
 
 var (
-	dirFlag string
+	dirFlag  string
+	jobsFlag int
 )
 
 var signCmd = &cobra.Command{
@@ -27,6 +31,9 @@ var signCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if dirFlag != "" && len(args) > 0 {
 			return fmt.Errorf("cannot use module directory together with module list")
+		}
+		if jobsFlag < 0 {
+			return fmt.Errorf("jobs must be zero or greater")
 		}
 
 		return nil
@@ -45,7 +52,7 @@ var signCmd = &cobra.Command{
 			return fmt.Errorf("no modules to sign")
 		}
 
-		if err := sign.SignModules(modules); err != nil {
+		if err := sign.SignModules(modules, jobsFlag); err != nil {
 			return fmt.Errorf("failed to sign modules: %w", err)
 		}
 
@@ -55,6 +62,7 @@ var signCmd = &cobra.Command{
 
 func init() {
 	signCmd.Flags().StringVarP(&dirFlag, "dir", "d", "", "Directory containing kernel modules to sign")
+	signCmd.Flags().IntVarP(&jobsFlag, "jobs", "j", 0, "Number of modules to sign concurrently (0 = number of CPUs)")
 
 	rootCmd.AddCommand(signCmd)
 }

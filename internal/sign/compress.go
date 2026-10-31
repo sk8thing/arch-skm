@@ -5,9 +5,19 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
+)
+
+var (
+	zstdDecoder = sync.OnceValues(func() (*zstd.Decoder, error) {
+		return zstd.NewReader(nil)
+	})
+	zstdEncoder = sync.OnceValues(func() (*zstd.Encoder, error) {
+		return zstd.NewWriter(nil)
+	})
 )
 
 func decompress(ext string, data []byte) ([]byte, error) {
@@ -43,11 +53,10 @@ func isCompressed(ext string) bool {
 }
 
 func decompressZstd(data []byte) ([]byte, error) {
-	decoder, err := zstd.NewReader(nil)
+	decoder, err := zstdDecoder()
 	if err != nil {
 		return nil, fmt.Errorf("create zstd decoder: %w", err)
 	}
-	defer decoder.Close()
 
 	decompressed, err := decoder.DecodeAll(data, nil)
 	if err != nil {
@@ -58,11 +67,10 @@ func decompressZstd(data []byte) ([]byte, error) {
 }
 
 func compressZstd(data []byte) ([]byte, error) {
-	encoder, err := zstd.NewWriter(nil)
+	encoder, err := zstdEncoder()
 	if err != nil {
 		return nil, fmt.Errorf("create zstd encoder: %w", err)
 	}
-	defer encoder.Close()
 
 	return encoder.EncodeAll(data, nil), nil
 }

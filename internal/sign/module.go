@@ -3,6 +3,7 @@ package sign
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,12 +27,45 @@ func signModule(signFile, keyFile, certFile, hashType, modPath string) error {
 	}
 
 	ext := filepath.Ext(modPath)
+	if isCompressed(ext) {
+		return signCompressedModule(signFile, keyFile, certFile, hashType, modPath, ext, info)
+	}
+
+	return signPlainModule(signFile, keyFile, certFile, hashType, modPath, info)
+}
+
+func signPlainModule(signFile, keyFile, certFile, hashType, modPath string, info os.FileInfo) error {
+	signed, err := isSignedFile(modPath)
+	if err != nil {
+		return err
+	}
+
+	tmpPath, err := copyTempModule(filepath.Dir(modPath), modPath)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmpPath)
+
+	if signed {
+		if err := stripSignature(tmpPath); err != nil {
+			return err
+		}
+	}
+
+	if err := runSigner(signFile, hashType, keyFile, certFile, tmpPath); err != nil {
+		return err
+	}
+
+	return replaceModule(tmpPath, modPath, info.Mode().Perm())
+}
+
+func signCompressedModule(signFile, keyFile, certFile, hashType, modPath, ext string, info os.FileInfo) error {
 	data, err := readModule(modPath, ext)
 	if err != nil {
 		return err
 	}
 
-	tmpPath, err := writeTempModule(filepath.Dir(modPath), data, info.Mode().Perm())
+	tmpPath, err := writeTempModule(filepath.Dir(modPath), data)
 	if err != nil {
 		return err
 	}
@@ -42,27 +76,33 @@ func signModule(signFile, keyFile, certFile, hashType, modPath string) error {
 			return err
 		}
 	}
+	data = nil
 
 	if err := runSigner(signFile, hashType, keyFile, certFile, tmpPath); err != nil {
 		return err
 	}
 
-	if isCompressed(ext) {
-		signed, err := os.ReadFile(tmpPath)
-		if err != nil {
-			return fmt.Errorf("read signed module: %w", err)
-		}
-
-		compressed, err := compress(ext, signed)
-		if err != nil {
-			return err
-		}
-
-		if err := os.WriteFile(tmpPath, compressed, info.Mode().Perm()); err != nil {
-			return fmt.Errorf("write compressed module: %w", err)
-		}
+	signed, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return fmt.Errorf("read signed module: %w", err)
 	}
 
+	compressed, err := compress(ext, signed)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(tmpPath, compressed, 0600); err != nil {
+		return fmt.Errorf("write compressed module: %w", err)
+	}
+
+	return replaceModule(tmpPath, modPath, info.Mode().Perm())
+}
+
+func replaceModule(tmpPath, modPath string, mode os.FileMode) error {
+	if err := os.Chmod(tmpPath, mode); err != nil {
+		return fmt.Errorf("set module permissions: %w", err)
+	}
 	if err := os.Rename(tmpPath, modPath); err != nil {
 		return fmt.Errorf("replace module: %w", err)
 	}
@@ -79,7 +119,34 @@ func readModule(path, ext string) ([]byte, error) {
 	return decompress(ext, data)
 }
 
-func writeTempModule(dir string, data []byte, mode os.FileMode) (string, error) {
+func copyTempModule(dir, srcPath string) (string, error) {
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("read module: %w", err)
+	}
+	defer src.Close()
+
+	file, err := os.CreateTemp(dir, tempPattern)
+	if err != nil {
+		return "", fmt.Errorf("create temporary module: %w", err)
+	}
+	path := file.Name()
+
+	if _, err := io.Copy(file, src); err != nil {
+		file.Close()
+		os.Remove(path)
+		return "", fmt.Errorf("write temporary module: %w", err)
+	}
+
+	if err := file.Close(); err != nil {
+		os.Remove(path)
+		return "", fmt.Errorf("close temporary module: %w", err)
+	}
+
+	return path, nil
+}
+
+func writeTempModule(dir string, data []byte) (string, error) {
 	file, err := os.CreateTemp(dir, tempPattern)
 	if err != nil {
 		return "", fmt.Errorf("create temporary module: %w", err)
@@ -92,18 +159,37 @@ func writeTempModule(dir string, data []byte, mode os.FileMode) (string, error) 
 		return "", fmt.Errorf("write temporary module: %w", err)
 	}
 
-	if err := file.Chmod(mode); err != nil {
-		file.Close()
-		os.Remove(path)
-		return "", fmt.Errorf("set temporary module permissions: %w", err)
-	}
-
 	if err := file.Close(); err != nil {
 		os.Remove(path)
 		return "", fmt.Errorf("close temporary module: %w", err)
 	}
 
 	return path, nil
+}
+
+func isSignedFile(path string) (bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return false, fmt.Errorf("read module: %w", err)
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return false, fmt.Errorf("stat module: %w", err)
+	}
+
+	start := int64(0)
+	if info.Size() > signatureChunk {
+		start = info.Size() - signatureChunk
+	}
+
+	data := make([]byte, info.Size()-start)
+	if _, err := file.ReadAt(data, start); err != nil && err != io.EOF {
+		return false, fmt.Errorf("read module: %w", err)
+	}
+
+	return bytes.Contains(data, []byte(signatureMarker)), nil
 }
 
 func isSigned(data []byte) bool {

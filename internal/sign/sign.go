@@ -1,10 +1,13 @@
 package sign
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/sk8thing/arch-skm-go/internal/utils"
 )
@@ -17,7 +20,7 @@ const (
 	defaultHashType = "sha512"
 )
 
-func SignModules(paths []string) error {
+func SignModules(paths []string, jobs int) error {
 	if len(paths) == 0 {
 		return fmt.Errorf("no modules to sign")
 	}
@@ -27,13 +30,74 @@ func SignModules(paths []string) error {
 		return err
 	}
 
-	for _, path := range paths {
-		if err := signModule(signFile, keyFile, certFile, hashType, path); err != nil {
-			return fmt.Errorf("sign module %q: %w", path, err)
-		}
+	return signAll(paths, jobs, func(path string) error {
+		return signModule(signFile, keyFile, certFile, hashType, path)
+	})
+}
+
+func signAll(paths []string, jobs int, sign func(string) error) error {
+	paths = uniquePaths(paths)
+	workers := resolveJobs(jobs, len(paths))
+	errs := make([]error, len(paths))
+
+	type job struct {
+		index int
+		path  string
 	}
 
-	return nil
+	work := make(chan job)
+	var wg sync.WaitGroup
+
+	for range workers {
+		wg.Go(func() {
+			for item := range work {
+				if err := sign(item.path); err != nil {
+					errs[item.index] = fmt.Errorf("sign module %q: %w", item.path, err)
+				}
+			}
+		})
+	}
+
+	for index, path := range paths {
+		work <- job{index: index, path: path}
+	}
+	close(work)
+	wg.Wait()
+
+	return errors.Join(errs...)
+}
+
+func uniquePaths(paths []string) []string {
+	seen := make(map[string]struct{}, len(paths))
+	unique := make([]string, 0, len(paths))
+
+	for _, path := range paths {
+		key := path
+		if absPath, err := filepath.Abs(path); err == nil {
+			key = absPath
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		unique = append(unique, path)
+	}
+
+	return unique
+}
+
+func resolveJobs(jobs, modules int) int {
+	if jobs <= 0 {
+		jobs = runtime.GOMAXPROCS(0)
+	}
+	if jobs > modules {
+		jobs = modules
+	}
+	if jobs < 1 {
+		jobs = 1
+	}
+
+	return jobs
 }
 
 func signingFiles() (signFile string, keyFile string, certFile string, hashType string, err error) {
