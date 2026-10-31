@@ -1,6 +1,10 @@
 package patch
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
 const suffix = `
   # ` + SigningMarker + `
@@ -30,13 +34,30 @@ const suffix = `
 
   rsync -a $dkms_src/{kernel-sign.conf,kernel-sign.sh} $dkms_dst/`
 
-func patchPackageHeadersFunction(content string) (string, error) {
+var reBuilddirVar = regexp.MustCompile(`(?m)^\s*(?:local\s+)?(_?builddir)=`)
+
+func patchPackageHeadersFunction(content string, configAtStart bool) (string, error) {
 	block, start, end, err := getFunctionBlock("_package-headers", content)
 	if err != nil {
 		return "", fmt.Errorf("failed to read _package-headers function block: %w", err)
 	}
 
-	updatedBlock := block[:len(block)-1] + suffix + "\n}"
+	builddirVar := "builddir"
+	if match := reBuilddirVar.FindStringSubmatch(block); match != nil {
+		builddirVar = match[1]
+	}
+
+	certsSrc := "../certs-local"
+	if !configAtStart {
+		certsSrc = "./certs-local"
+	}
+
+	blockSuffix := strings.NewReplacer(
+		"${builddir}", "${"+builddirVar+"}",
+		"../certs-local", certsSrc,
+	).Replace(suffix)
+
+	updatedBlock := block[:len(block)-1] + blockSuffix + "\n}"
 	updatedContent := content[:start] + updatedBlock + content[end:]
 
 	return updatedContent, nil

@@ -5,11 +5,10 @@ import (
 	"regexp"
 )
 
-const prefix = `  # ` + SigningMarker + `
+const preparePrefix = `  # ` + SigningMarker + `
   #
   ######################################################
-  # this is added at the start of prepare() & replaces #
-  # 'cd $_srcname'                                     #
+  # this is added at the start of prepare()            #
   ######################################################
 
   msg2 "Rebuilding local signing key..."
@@ -27,22 +26,48 @@ const prefix = `  # ` + SigningMarker + `
   msg2 "Updating kernel config with new key..."
   ./skm gen-keys '../config*'
 
-  cd ../$_srcname
+  cd $srcdir
 `
 
-var (
-	rePrepare = regexp.MustCompile(`(?m)^prepare\(\)\s*\{\n`)
-	reCd      = regexp.MustCompile(`(?m)^\s*cd\s+\$_srcname\s*$`)
-)
+const prepareSuffix = `
+  # ` + SigningMarker + `
+  #
+  ######################################################
+  # this is added at the end of prepare()              #
+  # for kernels that generate their config in prepare  #
+  ######################################################
 
-func patchPrepareFunction(content string) (string, error) {
+  msg2 "Rebuilding local signing key..."
+
+  local certs_local=certs-local
+  if [[ ! -d "$startdir/certs-local" ]]; then
+    error "Missing $startdir/certs-local; run 'skmctl update <kernel>' first"
+    exit 1
+  fi
+
+  rm -rf $certs_local
+  cp -a $startdir/certs-local $certs_local
+  cd $certs_local
+
+  msg2 "Updating kernel config with new key..."
+  ./skm gen-keys '../.config'
+
+  cd ..
+`
+
+var rePrepare = regexp.MustCompile(`(?m)^prepare\(\)\s*\{\n`)
+
+func patchPrepareFunction(content string, configAtStart bool) (string, error) {
 	block, start, end, err := getFunctionBlock("prepare", content)
 	if err != nil {
 		return "", fmt.Errorf("failed to read prepare function block: %w", err)
 	}
 
-	block = commentLine(block, reCd)
-	block = rePrepare.ReplaceAllLiteralString(block, "prepare() {\n"+prefix)
+	if configAtStart {
+		block = rePrepare.ReplaceAllLiteralString(block, "prepare() {\n"+preparePrefix)
+	} else {
+		block = block[:len(block)-1] + prepareSuffix + "\n}"
+	}
 
 	updatedContent := content[:start] + block + content[end:]
 

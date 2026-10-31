@@ -19,6 +19,10 @@ var definitions = []definition{
 	{Name: "linux", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux.git"},
 	{Name: "linux-hardened", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-hardened.git"},
 	{Name: "linux-lts", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-lts.git"},
+	{Name: "linux-zen", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-zen.git"},
+	{Name: "linux-rt", URL: "https://gitlab.archlinux.org/archlinux/packaging/packages/linux-rt.git"},
+	{Name: "linux-libre", URL: "https://aur.archlinux.org/linux-libre.git"},
+	{Name: "linux-xanmod", URL: "https://aur.archlinux.org/linux-xanmod.git"},
 }
 
 func Supported() []string {
