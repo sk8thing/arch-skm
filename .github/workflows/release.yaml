@@ -1,0 +1,70 @@
+name: Release (build and deploy)
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build linux/amd64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+        run: |
+          echo "Building ${GITHUB_REF_NAME} for linux/amd64"
+          make build completions VERSION="$GITHUB_REF_NAME"
+
+      - name: Package
+        run: |
+          file bin/skm bin/skmctl
+          name="${GITHUB_REPOSITORY#*/}_${GITHUB_REF_NAME}"
+
+          tar -czf "${name}.tar.gz" --transform "s,^bin,${name}," bin
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-artifacts-linux-amd64
+          path: "*.tar.gz"
+
+  deploy:
+    name: Deploy
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-artifacts-*
+          merge-multiple: true
+          path: dist/
+
+      - name: List Assets
+        run: ls -lh dist
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
