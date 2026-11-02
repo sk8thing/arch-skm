@@ -141,7 +141,7 @@ skm install-certs ./certs-local
 
 ## Configuration
 
-Configuration is read from `$XDG_CONFIG_HOME/skm/config`, falling back to `$HOME/skm/config`.
+Configuration is read from `$XDG_CONFIG_HOME/skm/config`, falling back to `$HOME/.config/skm/config`.
 
 ```ini
 BUILD_DIR = ~/build

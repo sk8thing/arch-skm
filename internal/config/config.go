@@ -109,7 +109,7 @@ func find() (string, error) {
 			return "", fmt.Errorf("resolve home directory: %w", err)
 		}
 	} else {
-		candidates = append(candidates, filepath.Join(home, "skm", "config"))
+		candidates = append(candidates, filepath.Join(home, ".config", "skm", "config"))
 	}
 
 	seen := make(map[string]bool, len(candidates))
