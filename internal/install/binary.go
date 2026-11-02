@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/utils"
 )
 
 func copyCurrentBinary(destPath string) error {

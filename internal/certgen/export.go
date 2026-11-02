@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/kconfig"
-	"github.com/sk8thing/arch-skm-go/internal/keygen"
+	"github.com/sk8thing/arch-skm/internal/kconfig"
+	"github.com/sk8thing/arch-skm/internal/keygen"
 )
 
 const (

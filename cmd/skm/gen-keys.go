@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/certgen"
-	"github.com/sk8thing/arch-skm-go/internal/kconfig"
-	"github.com/sk8thing/arch-skm-go/internal/keygen"
-	"github.com/sk8thing/arch-skm-go/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/certgen"
+	"github.com/sk8thing/arch-skm/internal/kconfig"
+	"github.com/sk8thing/arch-skm/internal/keygen"
+	"github.com/sk8thing/arch-skm/internal/utils"
 	"github.com/spf13/cobra"
 )
 

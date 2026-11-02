@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sk8thing/arch-skm-go/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/utils"
 )
 
 const keysDirName = "keys"

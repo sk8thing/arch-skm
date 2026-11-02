@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/sk8thing/arch-skm-go/internal/config"
+	"github.com/sk8thing/arch-skm/internal/config"
 )
 
 func loadConfig() (config.Config, error) {

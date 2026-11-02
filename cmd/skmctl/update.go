@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/helper"
-	"github.com/sk8thing/arch-skm-go/internal/install"
-	"github.com/sk8thing/arch-skm-go/internal/kernel"
-	"github.com/sk8thing/arch-skm-go/internal/patch"
+	"github.com/sk8thing/arch-skm/internal/helper"
+	"github.com/sk8thing/arch-skm/internal/install"
+	"github.com/sk8thing/arch-skm/internal/kernel"
+	"github.com/sk8thing/arch-skm/internal/patch"
 	"github.com/spf13/cobra"
 )
 

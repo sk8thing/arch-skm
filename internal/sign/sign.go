@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sk8thing/arch-skm-go/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/utils"
 )
 
 const (

@@ -3,8 +3,8 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/config"
-	"github.com/sk8thing/arch-skm-go/internal/kernel"
+	"github.com/sk8thing/arch-skm/internal/config"
+	"github.com/sk8thing/arch-skm/internal/kernel"
 )
 
 type target struct {

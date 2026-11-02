@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/sk8thing/arch-skm-go/internal/version"
+	"github.com/sk8thing/arch-skm/internal/version"
 	"github.com/spf13/cobra"
 )
 

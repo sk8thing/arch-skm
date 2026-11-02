@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/install"
+	"github.com/sk8thing/arch-skm/internal/install"
 	"github.com/spf13/cobra"
 )
 

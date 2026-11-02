@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/sk8thing/arch-skm-go/internal/sign"
+	"github.com/sk8thing/arch-skm/internal/sign"
 	"github.com/spf13/cobra"
 )
 

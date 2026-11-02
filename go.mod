@@ -1,6 +1,6 @@
-module github.com/sk8thing/arch-skm-go
+module github.com/sk8thing/arch-skm
 
-go 1.26.1
+go 1.27.3
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

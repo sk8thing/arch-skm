@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sk8thing/arch-skm-go/internal/kconfig"
-	"github.com/sk8thing/arch-skm-go/internal/keygen"
+	"github.com/sk8thing/arch-skm/internal/kconfig"
+	"github.com/sk8thing/arch-skm/internal/keygen"
 )
 
 var sigAlgoMap = map[kconfig.KeyType]map[kconfig.HashType]x509.SignatureAlgorithm{

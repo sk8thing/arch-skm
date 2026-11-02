@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm-go/internal/kernel"
-	"github.com/sk8thing/arch-skm-go/internal/makepkg"
-	"github.com/sk8thing/arch-skm-go/internal/patch"
+	"github.com/sk8thing/arch-skm/internal/kernel"
+	"github.com/sk8thing/arch-skm/internal/makepkg"
+	"github.com/sk8thing/arch-skm/internal/patch"
 	"github.com/spf13/cobra"
 )
 

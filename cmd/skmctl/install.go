@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/sk8thing/arch-skm-go/internal/kernel"
+	"github.com/sk8thing/arch-skm/internal/kernel"
 	"github.com/spf13/cobra"
 )
 

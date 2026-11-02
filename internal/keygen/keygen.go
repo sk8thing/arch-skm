@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"fmt"
 
-	"github.com/sk8thing/arch-skm-go/internal/kconfig"
+	"github.com/sk8thing/arch-skm/internal/kconfig"
 )
 
 type KeyPair interface {
