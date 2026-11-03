@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/sk8thing/arch-skm/internal/kernel"
+	"github.com/sk8thing/arch-skm/internal/pacman"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +41,13 @@ var installCmd = &cobra.Command{
 		noConfirm, _ := cmd.Flags().GetBool("noconfirm")
 		fmt.Fprintf(cmd.OutOrStdout(), "Installing %s\n", strings.Join(packages, " "))
 
-		return runPacman(cmd, packages, noConfirm)
+		if err := runPacman(cmd, packages, noConfirm); err != nil {
+			return err
+		}
+
+		ensureKernelIgnored(cmd, t.Variant, noConfirm)
+
+		return nil
 	},
 }
 
@@ -132,4 +141,89 @@ func runPacman(cmd *cobra.Command, packages []string, noConfirm bool) error {
 	}
 
 	return nil
+}
+
+func ensureKernelIgnored(cmd *cobra.Command, variant string, noConfirm bool) {
+	names := []string{variant, variant + "-headers"}
+
+	ignored, err := pacman.Ignored(cmd.Context())
+	if err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "warning: read pacman IgnorePkg: %v\n", err)
+		return
+	}
+
+	missing := pacman.Missing(ignored, names)
+	if len(missing) == 0 {
+		fmt.Fprintf(cmd.OutOrStdout(), "%s already ignored by pacman\n", strings.Join(names, " and "))
+		return
+	}
+
+	out := cmd.OutOrStdout()
+	fmt.Fprintf(out, "%s not ignored by pacman; a system upgrade could replace the locally signed kernel\n", strings.Join(missing, " and "))
+
+	if !noConfirm && isInteractive(cmd.InOrStdin()) {
+		answer, err := promptYesNo(cmd.InOrStdin(), out, fmt.Sprintf("Add %s to IgnorePkg in %s?", strings.Join(missing, " and "), pacman.ConfigPath))
+		if err != nil {
+			fmt.Fprintf(cmd.ErrOrStderr(), "warning: read confirmation: %v\n", err)
+			return
+		}
+		if !answer {
+			fmt.Fprintf(out, "Add \"IgnorePkg = %s\" to %s manually to keep the local kernel\n", strings.Join(names, " "), pacman.ConfigPath)
+			return
+		}
+	}
+
+	content, err := os.ReadFile(pacman.ConfigPath)
+	if err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "warning: %v\n", err)
+		return
+	}
+
+	updated, changed := pacman.AddIgnore(string(content), missing)
+	if !changed {
+		fmt.Fprintf(cmd.ErrOrStderr(), "warning: could not update IgnorePkg in %s; add \"IgnorePkg = %s\" manually\n", pacman.ConfigPath, strings.Join(names, " "))
+		return
+	}
+
+	if err := pacman.WriteConfig(cmd.Context(), updated, cmd.ErrOrStderr()); err != nil {
+		fmt.Fprintf(cmd.ErrOrStderr(), "warning: %v\n", err)
+		return
+	}
+
+	fmt.Fprintf(out, "%s added to IgnorePkg in %s\n", strings.Join(missing, " and "), pacman.ConfigPath)
+}
+
+func isInteractive(stdin io.Reader) bool {
+	file, ok := stdin.(*os.File)
+	if !ok {
+		return false
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		return false
+	}
+
+	return info.Mode()&os.ModeCharDevice != 0
+}
+
+func promptYesNo(stdin io.Reader, stdout io.Writer, question string) (bool, error) {
+	reader := bufio.NewReader(stdin)
+	for {
+		fmt.Fprintf(stdout, "%s [Y/n] ", question)
+
+		line, err := reader.ReadString('\n')
+		if err != nil && line == "" {
+			return false, err
+		}
+
+		switch strings.ToLower(strings.TrimSpace(line)) {
+		case "", "y", "yes":
+			return true, nil
+		case "n", "no":
+			return false, nil
+		default:
+			fmt.Fprintln(stdout, "Please answer 'y' or 'n'")
+		}
+	}
 }
