@@ -33,15 +33,19 @@ jobs:
       - name: Package
         run: |
           file bin/skm bin/skmctl
-          name="${GITHUB_REPOSITORY#*/}_${GITHUB_REF_NAME}"
+          name="${GITHUB_REPOSITORY#*/}_linux_amd64"
+          archive="${name}.tar.gz"
 
-          tar -czf "${name}.tar.gz" --transform "s,^bin,${name}," bin
+          tar -czf "$archive" --transform "s,^bin,${name}," bin
+          sha256sum "$archive" > "${archive}.sha256"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: release-artifacts-linux-amd64
-          path: "*.tar.gz"
+          path: |
+            *.tar.gz
+            *.tar.gz.sha256
 
   deploy:
     name: Deploy
