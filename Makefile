@@ -3,7 +3,7 @@ COMPLETION_DIR := $(BINDIR)/completions
 GO          ?= go
 GOFMT       ?= gofmt
 GOFLAGS     ?=
-LDFLAGS     ?= -s -w
+GO_LDFLAGS     ?= -s -w
 PACKAGES    ?= ./cmd/... ./internal/...
 VERSION     ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 VERSION_PKG := github.com/sk8thing/arch-skm/internal/version
@@ -17,8 +17,8 @@ all: build
 
 build:
 	@mkdir -p $(BINDIR)
-	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKM) ./cmd/skm
-	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKMCTL) ./cmd/skmctl
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(GO_LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKM) ./cmd/skm
+	$(GO) build -trimpath $(GOFLAGS) -ldflags '$(GO_LDFLAGS) $(VERSION_LDFLAGS)' -o $(SKMCTL) ./cmd/skmctl
 
 completions: build
 	@mkdir -p $(COMPLETION_DIR)
