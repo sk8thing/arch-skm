@@ -1,4 +1,4 @@
-# Arch-SKM
+# Arch-SKM — WORK IN PROGRESS 🛠️
 
 **Automated Linux kernel building with Signed Kernel Modules** (in-tree & out-of-tree) for Arch Linux.
 
@@ -106,23 +106,68 @@ DKMS signs out-of-tree modules through a `POST_BUILD` hook. A kernel built with 
 | `/etc/dkms/kernel-sign.sh` | Signs the built modules with the kernel's out-of-tree key |
 
 `skmctl install [kernel]` overwrites both files from the kernel package, so the hook always matches the key embedded in that kernel.
+DKMS only reads `/etc/dkms/<package>.conf`, so signing must be opted into per package by symlinking that file under the package name.
 
-### Enabling signing for a package
+> **Prerequisite:** The `dkms` package must be installed for any `skmctl dkms` subcommand to work.
 
-DKMS only reads `/etc/dkms/<package>.conf`, so the hook has to be opted into per package by symlinking it under the package name:
+### Subcommands
 
-```bash
-sudo ln -s /etc/dkms/kernel-sign.conf /etc/dkms/nvidia.conf
-```
+| Command | Function |
+|---|---|
+| `skmctl dkms status` | List installed DKMS modules and their signing state |
+| `skmctl dkms install [modules…]` | Enable signing for DKMS packages |
+| `skmctl dkms remove [modules…]` | Disable signing for DKMS packages |
+| `skmctl dkms rebuild [modules…]` | Rebuild DKMS modules for the running kernel |
 
-The symlink name must match the DKMS **package name** (the part before the first `/` in `dkms status`) not the pacman package name or the module directory:
+### Checking signing status
 
 ```console
-$ dkms status
-nvidia/570.86.16, 6.12.9-arch1-1, x86_64: installed
+$ skmctl dkms status
+nvidia: installed
+vboxhost: configured
 ```
 
-Here the package name is `nvidia`, so the symlink is `/etc/dkms/nvidia.conf`.
+Each line shows a unique DKMS package name and one of two states:
+
+| State | Meaning |
+|---|---|
+| `installed` | The module is installed but signing is not enabled |
+| `configured` | Signing is enabled (the `/etc/dkms/<package>.conf` symlink exists) |
+
+
+### Enabling signing
+
+```bash
+skmctl dkms install nvidia
+```
+
+This creates `/etc/dkms/nvidia.conf` as a symlink to `/etc/dkms/kernel-sign.conf`. Multiple packages can be configured at once:
+
+```bash
+skmctl dkms install nvidia vboxhost
+```
+
+The command validates that each module is actually installed, it will refuse to configure a package that `skmctl dkms status` doesn't list. If a symlink already exists and points to the correct target, the command reports `already configured` and skips it.
+
+To disable signing for a package, remove its configuration:
+
+```bash
+skmctl dkms remove nvidia
+```
+
+### Rebuilding modules
+
+After enabling signing for a package, rebuild it against the running kernel:
+
+```bash
+skmctl dkms rebuild nvidia
+```
+
+To rebuild all installed modules:
+
+```bash
+skmctl dkms rebuild --all
+```
 
 ### Verifying the signature
 
@@ -137,17 +182,6 @@ Local Out of tree kernel module signing key
 ```
 
 An empty or different value means the module was not signed with that key.
-
-### Rebuilding a module
-
-After adding or fixing the symlink, rebuild the module against the running kernel:
-
-```bash
-sudo dkms remove nvidia/570.86.16 -k "$(uname -r)"
-sudo dkms install nvidia/570.86.16 -k "$(uname -r)"
-```
-
-Use `dkms autoinstall -k "$(uname -r)"` to rebuild every enabled module.
 
 ### Enforce signature verification
 
