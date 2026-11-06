@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sk8thing/arch-skm/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/helper"
 )
 
 const (
@@ -121,7 +121,7 @@ func resolveJobs(jobs, modules int) int {
 }
 
 func signingFiles() (signFile string, keyFile string, certFile string, hashType string, err error) {
-	exePath, err := utils.GetExecutablePath()
+	exePath, err := helper.ExecutablePath()
 	if err != nil {
 		return "", "", "", "", fmt.Errorf("get executable path: %w", err)
 	}

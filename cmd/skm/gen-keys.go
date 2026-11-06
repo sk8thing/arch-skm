@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 
 	"github.com/sk8thing/arch-skm/internal/certgen"
+	"github.com/sk8thing/arch-skm/internal/helper"
 	"github.com/sk8thing/arch-skm/internal/kconfig"
 	"github.com/sk8thing/arch-skm/internal/keygen"
-	"github.com/sk8thing/arch-skm/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ var genKeysCmd = &cobra.Command{
 			return fmt.Errorf("no kernel config files found matching: %s", configGlob)
 		}
 
-		exePath, err := utils.GetExecutablePath()
+		exePath, err := helper.ExecutablePath()
 		if err != nil {
 			return fmt.Errorf("cannot get executable path: %w", err)
 		}

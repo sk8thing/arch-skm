@@ -19,7 +19,7 @@ func Resolve(explicitPath string) (string, error) {
 	}
 
 	var candidates []string
-	if exePath, err := os.Executable(); err == nil {
+	if exePath, err := ExecutablePath(); err == nil {
 		candidates = append(candidates, filepath.Join(filepath.Dir(exePath), "skm"))
 	}
 	candidates = append(candidates, installedPath)

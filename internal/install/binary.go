@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sk8thing/arch-skm/internal/utils"
+	"github.com/sk8thing/arch-skm/internal/helper"
 )
 
 func copyCurrentBinary(destPath string) error {
-	exePath, err := utils.GetExecutablePath()
+	exePath, err := helper.ExecutablePath()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
 	}

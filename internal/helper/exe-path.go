@@ -1,11 +1,11 @@
-package utils
+package helper
 
 import (
 	"os"
 	"path/filepath"
 )
 
-func GetExecutablePath() (string, error) {
+func ExecutablePath() (string, error) {
 	exePath, err := os.Executable()
 	if err != nil {
 		return "", err
