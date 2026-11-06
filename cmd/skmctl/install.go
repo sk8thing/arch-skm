@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/sk8thing/arch-skm/internal/command"
 	"github.com/sk8thing/arch-skm/internal/kernel"
 	"github.com/sk8thing/arch-skm/internal/pacman"
 	"github.com/spf13/cobra"
@@ -58,19 +58,8 @@ func init() {
 }
 
 func listBuiltPackages(cmd *cobra.Command, dir string, variant string) ([]string, error) {
-	path, err := exec.LookPath("makepkg")
+	output, err := command.Runner{}.Output(cmd.Context(), command.Options{Dir: dir}, "makepkg", "--packagelist")
 	if err != nil {
-		return nil, fmt.Errorf("find makepkg: %w", err)
-	}
-
-	listCmd := exec.CommandContext(cmd.Context(), path, "--packagelist")
-	listCmd.Dir = dir
-
-	output, err := listCmd.Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
-			return nil, fmt.Errorf("makepkg --packagelist: %s", strings.TrimSpace(string(exitErr.Stderr)))
-		}
 		return nil, fmt.Errorf("makepkg --packagelist: %w", err)
 	}
 
@@ -106,11 +95,6 @@ func listBuiltPackages(cmd *cobra.Command, dir string, variant string) ([]string
 }
 
 func runPacman(cmd *cobra.Command, packages []string, noConfirm bool) error {
-	pacmanPath, err := exec.LookPath("pacman")
-	if err != nil {
-		return fmt.Errorf("find pacman: %w", err)
-	}
-
 	args := []string{"-U"}
 	if noConfirm {
 		args = append(args, "--noconfirm")
@@ -121,23 +105,14 @@ func runPacman(cmd *cobra.Command, packages []string, noConfirm bool) error {
 	)
 	args = append(args, packages...)
 
-	command := pacmanPath
-	if os.Geteuid() != 0 {
-		sudoPath, err := exec.LookPath("sudo")
-		if err != nil {
-			return fmt.Errorf("find sudo: %w", err)
-		}
-		command = sudoPath
-		args = append([]string{pacmanPath}, args...)
+	runner := command.Runner{
+		Stdin:  cmd.InOrStdin(),
+		Stdout: cmd.OutOrStdout(),
+		Stderr: cmd.ErrOrStderr(),
 	}
 
-	pacmanCmd := exec.CommandContext(cmd.Context(), command, args...)
-	pacmanCmd.Stdin = cmd.InOrStdin()
-	pacmanCmd.Stdout = cmd.OutOrStdout()
-	pacmanCmd.Stderr = cmd.ErrOrStderr()
-
-	if err := pacmanCmd.Run(); err != nil {
-		return fmt.Errorf("%s %s: %w", command, strings.Join(args, " "), err)
+	if err := runner.Run(cmd.Context(), command.Options{Sudo: true}, "pacman", args...); err != nil {
+		return err
 	}
 
 	return nil

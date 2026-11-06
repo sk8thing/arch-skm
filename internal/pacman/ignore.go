@@ -1,4 +1,3 @@
-// Package pacman reads and edits the pacman configuration.
 package pacman
 
 import (
@@ -6,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 const ConfigPath = "/etc/pacman.conf"
@@ -17,10 +17,8 @@ const ConfigPath = "/etc/pacman.conf"
 var ignorePkgLine = regexp.MustCompile(`(?i)^(\s*IgnorePkg\s*=\s*)(.*)$`)
 
 func Ignored(ctx context.Context) ([]string, error) {
-	if path, err := exec.LookPath("pacman-conf"); err == nil {
-		if output, err := exec.CommandContext(ctx, path, "IgnorePkg").Output(); err == nil {
-			return strings.Fields(string(output)), nil
-		}
+	if output, err := (command.Runner{}).Output(ctx, command.Options{}, "pacman-conf", "IgnorePkg"); err == nil {
+		return strings.Fields(output), nil
 	}
 
 	content, err := os.ReadFile(ConfigPath)
@@ -105,17 +103,9 @@ func WriteConfig(ctx context.Context, content string, stderr io.Writer) error {
 		return nil
 	}
 
-	sudoPath, err := exec.LookPath("sudo")
-	if err != nil {
-		return fmt.Errorf("find sudo: %w", err)
-	}
-
-	cmd := exec.CommandContext(ctx, sudoPath, "tee", ConfigPath)
-	cmd.Stdin = strings.NewReader(content)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s tee %s: %w", sudoPath, ConfigPath, err)
+	sudoRunner := command.Runner{Stdin: strings.NewReader(content)}
+	if err := sudoRunner.Run(ctx, command.Options{Sudo: true}, "tee", ConfigPath); err != nil {
+		return fmt.Errorf("write %s: %w", ConfigPath, err)
 	}
 
 	return nil

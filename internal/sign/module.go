@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 const (
-	stripBinary     = "/usr/bin/strip"
 	signatureMarker = "Module signature"
 	signatureChunk  = 100
 	tempPattern     = ".skm-*"
@@ -203,28 +202,11 @@ func isSigned(data []byte) bool {
 }
 
 func stripSignature(ctx context.Context, path string) error {
-	output, err := exec.CommandContext(ctx, stripBinary, "--strip-debug", path).CombinedOutput()
-	if err != nil {
-		return commandError("strip module signature", err, output)
-	}
-
-	return nil
+	_, err := command.Runner{}.Combined(ctx, command.Options{}, "strip", "--strip-debug", path)
+	return err
 }
 
 func runSigner(ctx context.Context, signFile, hashType, keyFile, certFile, modPath string) error {
-	output, err := exec.CommandContext(ctx, signFile, hashType, keyFile, certFile, modPath).CombinedOutput()
-	if err != nil {
-		return commandError("run kernel signer", err, output)
-	}
-
-	return nil
-}
-
-func commandError(action string, err error, output []byte) error {
-	message := strings.TrimSpace(string(output))
-	if message == "" {
-		return fmt.Errorf("%s: %w", action, err)
-	}
-
-	return fmt.Errorf("%s: %w: %s", action, err, message)
+	_, err := command.Runner{}.Combined(ctx, command.Options{}, signFile, hashType, keyFile, certFile, modPath)
+	return err
 }

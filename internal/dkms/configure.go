@@ -7,9 +7,10 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, stderr io.Writer) error {
@@ -17,6 +18,8 @@ func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, std
 	if err != nil {
 		return err
 	}
+
+	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 
 	source := filepath.Join(defaultDir, kernelSignConf)
 	info, err := os.Stat(source)
@@ -45,7 +48,7 @@ func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, std
 			continue
 		}
 
-		if err := run(ctx, stdin, stdout, stderr, "ln", "-s", source, target); err != nil {
+		if err := runner.Run(ctx, command.Options{Sudo: true}, "ln", "-s", source, target); err != nil {
 			errs = append(errs, fmt.Errorf("configure %s: %w", name, err))
 			continue
 		}
@@ -61,6 +64,8 @@ func Remove(ctx context.Context, modules []string, stdin io.Reader, stdout, stde
 	if err != nil {
 		return err
 	}
+
+	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 
 	var errs []error
 	for _, name := range modules {
@@ -84,7 +89,7 @@ func Remove(ctx context.Context, modules []string, stdin io.Reader, stdout, stde
 			continue
 		}
 
-		if err := run(ctx, stdin, stdout, stderr, "rm", target); err != nil {
+		if err := runner.Run(ctx, command.Options{Sudo: true}, "rm", target); err != nil {
 			errs = append(errs, fmt.Errorf("remove %s: %w", name, err))
 			continue
 		}
@@ -141,35 +146,6 @@ func validateName(name string) error {
 		return fmt.Errorf("invalid module name %q", name)
 	case strings.ContainsAny(name, `/\`):
 		return fmt.Errorf("invalid module name %q: must be a DKMS package name", name)
-	}
-
-	return nil
-}
-
-func run(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
-	path, err := exec.LookPath(name)
-	if err != nil {
-		return fmt.Errorf("find %s: %w", name, err)
-	}
-
-	command := path
-	commandArgs := args
-	if os.Geteuid() != 0 {
-		sudoPath, err := exec.LookPath("sudo")
-		if err != nil {
-			return fmt.Errorf("find sudo: %w", err)
-		}
-		command = sudoPath
-		commandArgs = append([]string{path}, args...)
-	}
-
-	cmd := exec.CommandContext(ctx, command, commandArgs...)
-	cmd.Stdin = stdin
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s %s: %w", command, strings.Join(commandArgs, " "), err)
 	}
 
 	return nil

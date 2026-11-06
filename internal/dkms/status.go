@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 const (
@@ -168,18 +169,5 @@ func parseStatusEntries(output string) []statusEntry {
 }
 
 func statusOutput(ctx context.Context) (string, error) {
-	path, err := exec.LookPath("dkms")
-	if err != nil {
-		return "", fmt.Errorf("find dkms: %w", err)
-	}
-
-	output, err := exec.CommandContext(ctx, path, "status").Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok && len(exitErr.Stderr) > 0 {
-			return "", fmt.Errorf("dkms status: %s", strings.TrimSpace(string(exitErr.Stderr)))
-		}
-		return "", fmt.Errorf("dkms status: %w", err)
-	}
-
-	return string(output), nil
+	return command.Runner{}.Output(ctx, command.Options{}, "dkms", "status")
 }

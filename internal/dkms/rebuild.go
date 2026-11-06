@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os/exec"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 func Rebuild(ctx context.Context, modules []string, all bool, stdin io.Reader, stdout, stderr io.Writer) error {
@@ -97,11 +98,13 @@ func moduleSpecs(entries []statusEntry, name, release string) []string {
 }
 
 func rebuildModule(ctx context.Context, release, module string, stdin io.Reader, stdout, stderr io.Writer) error {
-	if err := run(ctx, stdin, stdout, stderr, "dkms", "remove", module, "-k", release); err != nil {
+	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
+
+	if err := runner.Run(ctx, command.Options{Sudo: true}, "dkms", "remove", module, "-k", release); err != nil {
 		return fmt.Errorf("remove %s: %w", module, err)
 	}
 
-	if err := run(ctx, stdin, stdout, stderr, "dkms", "install", module, "-k", release); err != nil {
+	if err := runner.Run(ctx, command.Options{Sudo: true}, "dkms", "install", module, "-k", release); err != nil {
 		return fmt.Errorf("install %s: %w", module, err)
 	}
 
@@ -109,12 +112,12 @@ func rebuildModule(ctx context.Context, release, module string, stdin io.Reader,
 }
 
 func kernelRelease(ctx context.Context) (string, error) {
-	output, err := exec.CommandContext(ctx, "uname", "-r").Output()
+	output, err := command.Runner{}.Output(ctx, command.Options{}, "uname", "-r")
 	if err != nil {
-		return "", fmt.Errorf("uname -r: %w", err)
+		return "", fmt.Errorf("kernel release: %w", err)
 	}
 
-	release := strings.TrimSpace(string(output))
+	release := strings.TrimSpace(output)
 	if release == "" {
 		return "", fmt.Errorf("uname -r returned an empty kernel release")
 	}

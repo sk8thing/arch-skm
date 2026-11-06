@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 type Options struct {
@@ -41,11 +42,6 @@ func Build(ctx context.Context, opts Options) error {
 		return fmt.Errorf("build directory is required")
 	}
 
-	path, err := exec.LookPath("makepkg")
-	if err != nil {
-		return fmt.Errorf("find makepkg: %w", err)
-	}
-
 	if opts.Stdin == nil {
 		opts.Stdin = os.Stdin
 	}
@@ -56,21 +52,18 @@ func Build(ctx context.Context, opts Options) error {
 		opts.Stderr = os.Stderr
 	}
 
-	args := Args(opts)
-	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.Dir = opts.Dir
-	cmd.Stdin = opts.Stdin
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
+	runner := command.Runner{
+		Stdin:  opts.Stdin,
+		Stdout: opts.Stdout,
+		Stderr: opts.Stderr,
+	}
+
+	commandOpts := command.Options{Dir: opts.Dir}
 	if opts.MakepkgDir != "" {
-		cmd.Env = setEnv(os.Environ(), "BUILDDIR", opts.MakepkgDir)
+		commandOpts.Env = setEnv(os.Environ(), "BUILDDIR", opts.MakepkgDir)
 	}
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("makepkg %s: %w", strings.Join(args, " "), err)
-	}
-
-	return nil
+	return runner.Run(ctx, commandOpts, "makepkg", Args(opts)...)
 }
 
 func setEnv(env []string, key, value string) []string {

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/sk8thing/arch-skm/internal/command"
 )
 
 type definition struct {
@@ -139,28 +140,11 @@ func clone(ctx context.Context, repoURL, dest string, opts UpdateOptions) error 
 }
 
 func runGit(ctx context.Context, dir string, opts UpdateOptions, args ...string) error {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	if dir != "" {
-		cmd.Dir = dir
-	}
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
+	runner := command.Runner{Stdout: opts.Stdout, Stderr: opts.Stderr}
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
-	}
-
-	return nil
+	return runner.Run(ctx, command.Options{Dir: dir}, "git", args...)
 }
 
 func gitOutput(ctx context.Context, dir string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = dir
-
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+	return command.Runner{}.Output(ctx, command.Options{Dir: dir}, "git", args...)
 }
