@@ -1,7 +1,6 @@
 package kconfig
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -11,5 +10,9 @@ func updateTrustedKeys(line string, value string) (string, bool) {
 	if !strings.HasPrefix(line, trustedKeys) {
 		return line, false
 	}
-	return trustedKeys + fmt.Sprintf(`"%s"`, value), true
+	return trustedKeysValue(value), true
+}
+
+func trustedKeysValue(value string) string {
+	return trustedKeys + `"` + value + `"`
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 type KConfig struct {
@@ -39,29 +40,32 @@ func (k *KConfig) UpdateTrustedKeys(value string) error {
 	}
 
 	if !found {
-		lines = append(lines, trustedKeys+fmt.Sprintf(`"%s"`, value))
+		lines = append(lines, trustedKeysValue(value))
 	}
 
 	tmpPath := k.path + ".tmp"
-	out, err := os.Create(tmpPath)
-	if err != nil {
-		return fmt.Errorf("write temp kconfig %q: %w", tmpPath, err)
-	}
-	defer out.Close()
-
-	writer := bufio.NewWriter(out)
-	for _, l := range lines {
-		if _, err := writer.WriteString(l + "\n"); err != nil {
-			return err
-		}
-	}
-
-	if err := writer.Flush(); err != nil {
+	if err := writeLines(tmpPath, lines); err != nil {
+		os.Remove(tmpPath)
 		return err
 	}
 
 	if err := os.Rename(tmpPath, k.path); err != nil {
+		os.Remove(tmpPath)
 		return fmt.Errorf("overwrite kconfig %q: %w", k.path, err)
+	}
+
+	return nil
+}
+
+func writeLines(path string, lines []string) error {
+	var buf strings.Builder
+	for _, line := range lines {
+		buf.WriteString(line)
+		buf.WriteByte('\n')
+	}
+
+	if err := os.WriteFile(path, []byte(buf.String()), 0666); err != nil {
+		return fmt.Errorf("write temp kconfig %q: %w", path, err)
 	}
 
 	return nil
