@@ -126,34 +126,27 @@ func copyTempModule(dir, srcPath string) (string, error) {
 	}
 	defer src.Close()
 
-	file, err := os.CreateTemp(dir, tempPattern)
-	if err != nil {
-		return "", fmt.Errorf("create temporary module: %w", err)
-	}
-	path := file.Name()
-
-	if _, err := io.Copy(file, src); err != nil {
-		file.Close()
-		os.Remove(path)
-		return "", fmt.Errorf("write temporary module: %w", err)
-	}
-
-	if err := file.Close(); err != nil {
-		os.Remove(path)
-		return "", fmt.Errorf("close temporary module: %w", err)
-	}
-
-	return path, nil
+	return createTempModule(dir, func(file *os.File) error {
+		_, err := io.Copy(file, src)
+		return err
+	})
 }
 
 func writeTempModule(dir string, data []byte) (string, error) {
+	return createTempModule(dir, func(file *os.File) error {
+		_, err := file.Write(data)
+		return err
+	})
+}
+
+func createTempModule(dir string, write func(*os.File) error) (string, error) {
 	file, err := os.CreateTemp(dir, tempPattern)
 	if err != nil {
 		return "", fmt.Errorf("create temporary module: %w", err)
 	}
 	path := file.Name()
 
-	if _, err := file.Write(data); err != nil {
+	if err := write(file); err != nil {
 		file.Close()
 		os.Remove(path)
 		return "", fmt.Errorf("write temporary module: %w", err)
@@ -189,16 +182,19 @@ func isSignedFile(path string) (bool, error) {
 		return false, fmt.Errorf("read module: %w", err)
 	}
 
-	return bytes.Contains(data, []byte(signatureMarker)), nil
+	return isSigned(data), nil
 }
 
 func isSigned(data []byte) bool {
-	start := 0
-	if len(data)-signatureChunk >= signatureChunk {
-		start = len(data) - signatureChunk
+	return bytes.Contains(signatureTail(data), []byte(signatureMarker))
+}
+
+func signatureTail(data []byte) []byte {
+	if len(data) > signatureChunk {
+		return data[len(data)-signatureChunk:]
 	}
 
-	return bytes.Contains(data[start:], []byte(signatureMarker))
+	return data
 }
 
 func stripSignature(ctx context.Context, path string) error {
