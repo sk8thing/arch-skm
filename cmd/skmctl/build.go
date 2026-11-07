@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 
+	"github.com/sk8thing/arch-skm/internal/helper"
 	"github.com/sk8thing/arch-skm/internal/kernel"
 	"github.com/sk8thing/arch-skm/internal/makepkg"
 	"github.com/sk8thing/arch-skm/internal/patch"
@@ -90,18 +93,11 @@ func validateBuildDir(dir string) error {
 	}
 
 	skmPath := filepath.Join(dir, "certs-local", "skm")
-	info, err = os.Stat(skmPath)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("build directory %q has no certs-local/skm; run 'skmctl update %s' first", dir, filepath.Base(dir))
-	}
-	if err != nil {
-		return fmt.Errorf("access runtime helper %q: %w", skmPath, err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("runtime helper %q is not a regular file", skmPath)
-	}
-	if info.Mode().Perm()&0111 == 0 {
-		return fmt.Errorf("runtime helper %q is not executable", skmPath)
+	if err := helper.VerifyExecutableFile("runtime helper", skmPath); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("build directory %q has no certs-local/skm; run 'skmctl update %s' first", dir, filepath.Base(dir))
+		}
+		return err
 	}
 
 	return nil

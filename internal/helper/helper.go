@@ -9,6 +9,30 @@ import (
 
 const installedPath = "/usr/lib/skm/skm"
 
+func VerifyExecutableFile(label, path string) error {
+	return verifyFile(label, path, true)
+}
+
+func VerifyRegularFile(label, path string) error {
+	return verifyFile(label, path, false)
+}
+
+func verifyFile(label, path string, executable bool) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("access %s %q: %w", label, path, err)
+	}
+
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("%s %q is not a regular file", label, path)
+	}
+	if executable && info.Mode().Perm()&0111 == 0 {
+		return fmt.Errorf("%s %q is not executable", label, path)
+	}
+
+	return nil
+}
+
 func Resolve(explicitPath string) (string, error) {
 	if explicitPath != "" {
 		return resolvePath("--skm", explicitPath)
@@ -40,15 +64,8 @@ func resolvePath(source, path string) (string, error) {
 		return "", fmt.Errorf("resolve %s %q: %w", source, path, err)
 	}
 
-	info, err := os.Stat(absPath)
-	if err != nil {
-		return "", fmt.Errorf("access %s %q: %w", source, absPath, err)
-	}
-	if !info.Mode().IsRegular() {
-		return "", fmt.Errorf("%s %q is not a regular file", source, absPath)
-	}
-	if info.Mode().Perm()&0111 == 0 {
-		return "", fmt.Errorf("%s %q is not executable", source, absPath)
+	if err := VerifyExecutableFile(source, absPath); err != nil {
+		return "", err
 	}
 
 	return absPath, nil

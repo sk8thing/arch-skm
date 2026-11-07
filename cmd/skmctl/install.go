@@ -2,13 +2,16 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/sk8thing/arch-skm/internal/command"
+	"github.com/sk8thing/arch-skm/internal/helper"
 	"github.com/sk8thing/arch-skm/internal/kernel"
 	"github.com/sk8thing/arch-skm/internal/pacman"
 	"github.com/spf13/cobra"
@@ -73,15 +76,11 @@ func listBuiltPackages(cmd *cobra.Command, dir string, variant string) ([]string
 			line = filepath.Join(dir, line)
 		}
 
-		info, err := os.Stat(line)
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("built package %q not found; run 'skmctl build %s' first", line, variant)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("access package %q: %w", line, err)
-		}
-		if !info.Mode().IsRegular() {
-			return nil, fmt.Errorf("package path %q is not a regular file", line)
+		if err := helper.VerifyRegularFile("package", line); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil, fmt.Errorf("built package %q not found; run 'skmctl build %s' first", line, variant)
+			}
+			return nil, err
 		}
 
 		packages = append(packages, line)
