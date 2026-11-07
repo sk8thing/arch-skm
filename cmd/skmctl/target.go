@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"path/filepath"
 
 	"github.com/sk8thing/arch-skm/internal/config"
@@ -19,20 +20,19 @@ func resolveTarget(variant string) (target, error) {
 		return target{}, err
 	}
 
-	cfg, err := loadConfig()
+	cfg, err := config.Load()
 	if err != nil {
 		return target{}, err
 	}
 
-	buildDir, err := resolveBuildDir(cfg)
-	if err != nil {
-		return target{}, err
+	if cfg.BuildDir == "" {
+		return target{}, fmt.Errorf("build directory is required")
 	}
 
 	return target{
 		Variant:  variant,
 		Config:   cfg,
-		BuildDir: buildDir,
-		Dir:      filepath.Join(buildDir, variant),
+		BuildDir: cfg.BuildDir,
+		Dir:      filepath.Join(cfg.BuildDir, variant),
 	}, nil
 }
