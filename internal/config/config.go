@@ -75,15 +75,6 @@ func Default() (Config, error) {
 	}, nil
 }
 
-func DefaultBuildDir() string {
-	cfg, err := Default()
-	if err != nil {
-		return ""
-	}
-
-	return cfg.BuildDir
-}
-
 func configHome() (string, error) {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return xdg, nil
