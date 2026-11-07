@@ -33,14 +33,14 @@ var genKeysCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("cannot get executable path: %w", err)
 		}
-		path := filepath.Dir(exePath)
+		exeDir := filepath.Dir(exePath)
 
 		var refConfig *kconfig.KConfig
 		configs := make([]*kconfig.KConfig, 0, len(matches))
-		for _, path := range matches {
-			config, err := kconfig.NewFromFile(path)
+		for _, match := range matches {
+			config, err := kconfig.NewFromFile(match)
 			if err != nil {
-				return fmt.Errorf("failed to parse config %s: %w", path, err)
+				return fmt.Errorf("failed to parse config %s: %w", match, err)
 			}
 
 			configs = append(configs, config)
@@ -67,7 +67,7 @@ var genKeysCmd = &cobra.Command{
 			return fmt.Errorf("failed to generate certificate: %w", err)
 		}
 
-		trustedKeysPath, err := certgen.ExportCertificate(path, cert, keys, refConfig)
+		trustedKeysPath, err := certgen.ExportCertificate(exeDir, cert, keys, refConfig)
 		if err != nil {
 			return fmt.Errorf("failed to export certificate: %w", err)
 		}
