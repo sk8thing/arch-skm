@@ -1,6 +1,7 @@
 package certgen
 
 import (
+	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -8,7 +9,6 @@ import (
 	"path/filepath"
 
 	"github.com/sk8thing/arch-skm/internal/kconfig"
-	"github.com/sk8thing/arch-skm/internal/keygen"
 )
 
 const (
@@ -18,7 +18,7 @@ const (
 	keySuffix  = "_key.pem"
 )
 
-func ExportCertificate(path string, cert []byte, keys keygen.KeyPair, config *kconfig.KConfig) (trustedKeysPath string, err error) {
+func ExportCertificate(path string, cert []byte, signer crypto.Signer, config *kconfig.KConfig) (trustedKeysPath string, err error) {
 	dir := filepath.Join(path, "keys")
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
@@ -28,7 +28,7 @@ func ExportCertificate(path string, cert []byte, keys keygen.KeyPair, config *kc
 	prvPath := filepath.Join(dir, prefix+prvSuffix)
 	keyPath := filepath.Join(dir, prefix+keySuffix)
 
-	privBytes, err := x509.MarshalPKCS8PrivateKey(keys.PrivateKey())
+	privBytes, err := x509.MarshalPKCS8PrivateKey(signer)
 	if err != nil {
 		return "", err
 	}

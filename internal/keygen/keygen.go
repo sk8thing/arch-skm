@@ -7,19 +7,13 @@ import (
 	"github.com/sk8thing/arch-skm/internal/kconfig"
 )
 
-type KeyPair interface {
-	PrivateKey() crypto.PrivateKey
-	PublicKey() crypto.PublicKey
-}
-
-func GenerateKeyPair(config *kconfig.KConfig) (KeyPair, error) {
-	keyType := config.KeyType()
-	switch keyType {
+func GenerateKeyPair(config *kconfig.KConfig) (crypto.Signer, error) {
+	switch config.KeyType() {
 	case kconfig.KeyTypeRSA:
 		return generateRSAKey()
 	case kconfig.KeyTypeECDSA:
 		return generateECDSAKey()
 	default:
-		return nil, fmt.Errorf("unsupported key type: %v", keyType)
+		return nil, fmt.Errorf("unsupported key type: %v", config.KeyType())
 	}
 }
