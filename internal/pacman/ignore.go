@@ -30,14 +30,9 @@ func Ignored(ctx context.Context) ([]string, error) {
 }
 
 func Missing(ignored, wanted []string) []string {
-	present := make(map[string]struct{}, len(ignored))
-	for _, name := range ignored {
-		present[name] = struct{}{}
-	}
-
 	var missing []string
 	for _, name := range wanted {
-		if _, ok := present[name]; !ok {
+		if !slices.Contains(ignored, name) {
 			missing = append(missing, name)
 		}
 	}
@@ -59,20 +54,21 @@ func AddIgnore(content string, names []string) (string, bool) {
 
 		value, comment := splitComment(match[2])
 		fields := strings.Fields(value)
-		if containsAll(fields, names) {
-			return content, false
-		}
+		updated := slices.Clone(fields)
 		for _, name := range names {
-			if !slices.Contains(fields, name) {
-				fields = append(fields, name)
+			if !slices.Contains(updated, name) {
+				updated = append(updated, name)
 			}
 		}
-
-		updated := strings.TrimRight(match[1], " \t") + " " + strings.Join(fields, " ")
-		if comment != "" {
-			updated += " " + comment
+		if slices.Equal(updated, fields) {
+			return content, false
 		}
-		lines[i] = updated
+
+		outLine := strings.TrimRight(match[1], " \t") + " " + strings.Join(updated, " ")
+		if comment != "" {
+			outLine += " " + comment
+		}
+		lines[i] = outLine
 
 		return strings.Join(lines, "\n"), true
 	}
@@ -132,16 +128,6 @@ func splitComment(value string) (string, string) {
 	}
 
 	return strings.TrimSpace(value), ""
-}
-
-func containsAll(values []string, wanted []string) bool {
-	for _, want := range wanted {
-		if !slices.Contains(values, want) {
-			return false
-		}
-	}
-
-	return true
 }
 
 func optionsSectionEnd(lines []string) (int, bool) {
