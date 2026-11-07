@@ -69,7 +69,7 @@ func installedNames(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 
-	return parseStatus(output), nil
+	return statusNames(parseStatusEntries(output)), nil
 }
 
 func installedSet(ctx context.Context) (map[string]struct{}, error) {
@@ -107,10 +107,6 @@ func isConfigured(path string) (bool, error) {
 
 func moduleConf(dir, name string) string {
 	return filepath.Join(dir, name+".conf")
-}
-
-func parseStatus(output string) []string {
-	return statusNames(parseStatusEntries(output))
 }
 
 func statusNames(entries []statusEntry) []string {
