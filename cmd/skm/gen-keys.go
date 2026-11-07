@@ -35,27 +35,11 @@ var genKeysCmd = &cobra.Command{
 		}
 		exeDir := filepath.Dir(exePath)
 
-		var refConfig *kconfig.KConfig
-		configs := make([]*kconfig.KConfig, 0, len(matches))
-		for _, match := range matches {
-			config, err := kconfig.NewFromFile(match)
-			if err != nil {
-				return fmt.Errorf("failed to parse config %s: %w", match, err)
-			}
-
-			configs = append(configs, config)
-
-			if refConfig == nil {
-				refConfig = config
-				continue
-			}
-			if config.KeyType() != refConfig.KeyType() {
-				return fmt.Errorf("key types must be same across configs: %s vs %s", refConfig.KeyType(), config.KeyType())
-			}
-			if config.HashType() != refConfig.HashType() {
-				return fmt.Errorf("hash types must be same across configs: %s vs %s", refConfig.HashType(), config.HashType())
-			}
+		configs, err := loadConfigs(matches)
+		if err != nil {
+			return err
 		}
+		refConfig := configs[0]
 
 		keys, err := keygen.GenerateKeyPair(refConfig)
 		if err != nil {
@@ -84,4 +68,27 @@ var genKeysCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(genKeysCmd)
+}
+
+func loadConfigs(matches []string) ([]*kconfig.KConfig, error) {
+	configs := make([]*kconfig.KConfig, 0, len(matches))
+
+	for _, match := range matches {
+		config, err := kconfig.NewFromFile(match)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse config %s: %w", match, err)
+		}
+
+		configs = append(configs, config)
+
+		ref := configs[0]
+		if config.KeyType() != ref.KeyType() {
+			return nil, fmt.Errorf("key types must be same across configs: %s vs %s", ref.KeyType(), config.KeyType())
+		}
+		if config.HashType() != ref.HashType() {
+			return nil, fmt.Errorf("hash types must be same across configs: %s vs %s", ref.HashType(), config.HashType())
+		}
+	}
+
+	return configs, nil
 }
