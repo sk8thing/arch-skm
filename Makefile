@@ -41,17 +41,24 @@ uninstall:
 	$(RM) $(DESTDIR)/usr/share/fish/vendor_completions.d/skmctl.fish
 
 test:
-	$(GO) test ./...
+	$(GO) test $(PACKAGES)
+
+race:
+	$(GO) test -race $(PACKAGES)
 
 vet:
 	$(GO) vet $(PACKAGES)
 
-check: vet test
+check: fmtcheck vet test race
 
 fmt:
 	$(GOFMT) -s -w cmd internal
 
+fmtcheck:
+	@checks=$$($(GOFMT) -s -l cmd internal); if [ -n "$$checks" ]; then \
+		echo "not gofmt-cleaned, run 'make fmt' in:"; echo "$$checks"; exit 1; fi
+
 clean:
 	$(RM) -r $(BINDIR)
 
-.PHONY: all build completions install uninstall test vet check fmt clean
+.PHONY: all build completions install uninstall test race vet check fmtcheck fmt clean
