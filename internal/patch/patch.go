@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 const (
@@ -23,6 +24,13 @@ func PatchPKGBUILD(path string) error {
 		return err
 	}
 
+	content := string(file)
+
+	// Already patched; don't append the signing blocks a second time.
+	if strings.Contains(content, SigningMarker) {
+		return nil
+	}
+
 	steps := []func(string) (string, error){
 		func(content string) (string, error) {
 			return patchPrepareFunction(content, configAtStart)
@@ -34,7 +42,6 @@ func PatchPKGBUILD(path string) error {
 		patchPkgnameDocs,
 	}
 
-	content := string(file)
 	updatedContent := content
 	for _, patchFn := range steps {
 		updatedContent, err = patchFn(updatedContent)
