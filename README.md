@@ -85,7 +85,7 @@ Removes the binaries and the installed completion files.
 
 ## Configuration
 
-Configuration is read from `$XDG_CONFIG_HOME/skm/config`, falling back to `$HOME/.config/skm/config`.
+Configuration is read from `$XDG_CONFIG_HOME/skm/skm.conf`, falling back to `$HOME/.config/skm/skm.conf`.
 
 ```ini
 BUILD_DIR = ~/build

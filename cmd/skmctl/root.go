@@ -11,7 +11,7 @@ var rootCmd = &cobra.Command{
 	Version: version.Version,
 	Long: `Download kernel packaging files, prepare local signing assets, and build signed Arch Linux kernels
 
-Configuration is read from $XDG_CONFIG_HOME/skm/config, falling back to $HOME/skm/config
+Configuration is read from $XDG_CONFIG_HOME/skm/skm.conf, falling back to $HOME/.config/skm/skm.conf
 If no config is found the following default values will be used:
 BUILD_DIR=~/build
 MAKEPKG_DIR=/tmp/makepkg`,
