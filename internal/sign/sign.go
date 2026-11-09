@@ -2,15 +2,14 @@ package sign
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/sk8thing/arch-skm/internal/helper"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -38,53 +37,23 @@ func SignModules(ctx context.Context, paths []string, jobs int) error {
 
 func signAll(ctx context.Context, paths []string, jobs int, sign func(context.Context, string) error) error {
 	paths = uniquePaths(paths)
-	workers := resolveJobs(jobs, len(paths))
-	errs := make([]error, len(paths))
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(resolveJobs(jobs, len(paths)))
 
-	type job struct {
-		index int
-		path  string
-	}
-
-	work := make(chan job)
-	var wg sync.WaitGroup
-
-	for range workers {
-		wg.Go(func() {
-			for item := range work {
-				if err := ctx.Err(); err != nil {
-					errs[item.index] = fmt.Errorf("sign module %q: %w", item.path, err)
-					continue
-				}
-				if err := sign(ctx, item.path); err != nil {
-					errs[item.index] = fmt.Errorf("sign module %q: %w", item.path, err)
-				}
+	for _, path := range paths {
+		group.Go(func() error {
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("sign module %q: %w", path, err)
 			}
+			if err := sign(ctx, path); err != nil {
+				return fmt.Errorf("sign module %q: %w", path, err)
+			}
+
+			return nil
 		})
 	}
 
-dispatch:
-	for index, path := range paths {
-		if err := ctx.Err(); err != nil {
-			for i := index; i < len(paths); i++ {
-				errs[i] = fmt.Errorf("sign module %q: %w", paths[i], err)
-			}
-			break
-		}
-
-		select {
-		case work <- job{index: index, path: path}:
-		case <-ctx.Done():
-			for i := index; i < len(paths); i++ {
-				errs[i] = fmt.Errorf("sign module %q: %w", paths[i], ctx.Err())
-			}
-			break dispatch
-		}
-	}
-	close(work)
-	wg.Wait()
-
-	return errors.Join(errs...)
+	return group.Wait()
 }
 
 func uniquePaths(paths []string) []string {
