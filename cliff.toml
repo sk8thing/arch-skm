@@ -1,0 +1,41 @@
+# git-cliff configuration for arch-skm.
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+body = """
+{% for entry in commits | commit_groups(groups=commit_parsers_groups) -%}
+### {{ entry.group | striptags | trim | upper_first }}
+{% for commit in entry.commits -%}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}{% if commit.breaking %} (**breaking**){% endif %}
+{% endfor %}
+{% endfor %}
+"""
+trim = true
+render_always = true
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+# Some older commits omit the blank line between subject and body, which makes
+# them non-conventional. Insert it so the body/footers are parsed correctly.
+commit_preprocessors = [
+  { pattern = '^([^\n]+)\n([^\n])', replace = "${1}\n\n${2}" },
+]
+protect_breaking_commits = true
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Features" },
+  { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+  { message = "^perf", group = "<!-- 2 -->Performance" },
+  { message = "^refactor", group = "<!-- 3 -->Refactoring" },
+  { message = "^docs", group = "<!-- 4 -->Documentation" },
+  { message = "^test", group = "<!-- 5 -->Testing" },
+  { message = "^build", group = "<!-- 6 -->Build" },
+  { message = "^ci", group = "<!-- 7 -->CI" },
+  { message = "^chore", group = "<!-- 8 -->Miscellaneous" },
+  { message = "^revert", group = "<!-- 9 -->Reverts" },
+  { message = ".*", group = "<!-- 10 -->Other Changes" },
+]
+filter_commits = false
+tag_pattern = 'v[0-9]+\.[0-9]+\.[0-9]+'
+sort_commits = "oldest"

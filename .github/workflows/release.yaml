@@ -59,6 +59,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - name: Download Artifacts
         uses: actions/download-artifact@v8
         with:
@@ -69,11 +74,30 @@ jobs:
       - name: List Assets
         run: ls -lh dist
 
+      - name: Generate Release Notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: "v2.14.2"
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Append Full Changelog Link
+        run: |
+          set -euo pipefail
+          previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          if [ -n "$previous" ]; then
+            notes="$(cat RELEASE_NOTES.md)"
+            printf '%s\n\n**Full Changelog**: https://github.com/%s/compare/%s...%s\n' \
+              "$notes" "$GITHUB_REPOSITORY" "$previous" "$GITHUB_REF_NAME" > RELEASE_NOTES.md
+          fi
+
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
