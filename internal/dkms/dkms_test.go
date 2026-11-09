@@ -101,7 +101,7 @@ func TestStatusNames(t *testing.T) {
 	}
 }
 
-func TestModuleSpecsPrefersCurrentKernel(t *testing.T) {
+func TestModuleSpecs(t *testing.T) {
 	entries := []statusEntry{
 		{Name: "nvidia", Version: "535.129.03", Kernel: "6.6.7-arch1-1"},
 		{Name: "nvidia", Version: "535.129.03", Kernel: "6.7.0-arch1-1"},
@@ -110,29 +110,15 @@ func TestModuleSpecsPrefersCurrentKernel(t *testing.T) {
 		{Name: "vboxhost", Version: "7.0.8", Kernel: "6.7.0-arch1-1"},
 	}
 
-	got := moduleSpecs(entries, "nvidia", "6.7.0-arch1-1")
-	if len(got) != 1 || got[0] != "nvidia/535.129.03" {
-		t.Errorf("moduleSpecs(current) = %v, want [nvidia/535.129.03]", got)
-	}
-}
-
-func TestModuleSpecsFallsBackToAll(t *testing.T) {
-	entries := []statusEntry{
-		{Name: "nvidia", Version: "535.129.03", Kernel: "6.6.7-arch1-1"},
-		{Name: "nvidia", Version: "535.129.03", Kernel: "6.7.0-arch1-1"},
-		{Name: "nvidia", Version: "536.20.02", Kernel: "6.6.7-arch1-1"},
-		{Name: "vboxhost", Version: "7.0.8", Kernel: "6.7.0-arch1-1"},
-	}
-
-	got := moduleSpecs(entries, "nvidia", "9.9.0-arch1-1")
+	got := moduleSpecs(entries, "nvidia")
 	want := []string{"nvidia/535.129.03", "nvidia/536.20.02"}
 	if len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
-		t.Errorf("moduleSpecs(no current kernel) = %v, want %v", got, want)
+		t.Errorf("moduleSpecs() = %v, want %v", got, want)
 	}
 }
 
 func TestModuleSpecsUnknownModule(t *testing.T) {
-	if got := moduleSpecs([]statusEntry{{Name: "nvidia"}}, "zstd", "6.7.0-arch1-1"); len(got) != 0 {
+	if got := moduleSpecs([]statusEntry{{Name: "nvidia"}}, "zstd"); len(got) != 0 {
 		t.Errorf("moduleSpecs(unknown) = %v, want no specs", got)
 	}
 }

@@ -16,7 +16,7 @@ const dkmsExample = `  # Show installed DKMS modules and their signing state
   # Disable module signing for a DKMS packages
   skmctl dkms remove nvidia vboxhost
 
-  # Rebuild DKMS modules for the running kernel
+  # Rebuild DKMS modules for all kernels
   skmctl dkms rebuild nvidia
 
   # Rebuild all installed DKMS modules
@@ -80,7 +80,7 @@ var dkmsRemoveCmd = &cobra.Command{
 
 var dkmsRebuildCmd = &cobra.Command{
 	Use:   "rebuild [modules...]",
-	Short: "Rebuild DKMS modules for the running kernel",
+	Short: "Rebuild DKMS modules for all kernels",
 	Args:  cobra.ArbitraryArgs,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if allFlag && len(args) > 0 {

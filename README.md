@@ -117,7 +117,7 @@ DKMS only reads `/etc/dkms/<package>.conf`, so signing must be opted into per pa
 | `skmctl dkms status` | List installed DKMS modules and their signing state |
 | `skmctl dkms install [modules…]` | Enable signing for DKMS packages |
 | `skmctl dkms remove [modules…]` | Disable signing for DKMS packages |
-| `skmctl dkms rebuild [modules…]` | Rebuild DKMS modules for the running kernel |
+| `skmctl dkms rebuild [modules…]` | Rebuild DKMS modules for all kernels |
 
 ### Checking signing status
 
@@ -157,7 +157,7 @@ skmctl dkms remove nvidia
 
 ### Rebuilding modules
 
-After enabling signing for a package, rebuild it against the running kernel:
+After enabling signing for a package, rebuild it against all installed kernels:
 
 ```bash
 skmctl dkms rebuild nvidia
