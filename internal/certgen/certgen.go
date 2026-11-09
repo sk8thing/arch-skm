@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/sk8thing/arch-skm/internal/kconfig"
@@ -54,7 +55,7 @@ func GenerateCertificate(signer crypto.Signer, config *kconfig.KConfig) ([]byte,
 	}
 
 	ski := sha1.Sum(pubDER)
-	serialNumber, err := RandomSerialNumber()
+	serialNumber, err := genRandSerial()
 	if err != nil {
 		return nil, err
 	}
@@ -80,4 +81,15 @@ func GenerateCertificate(signer crypto.Signer, config *kconfig.KConfig) ([]byte,
 	}
 
 	return der, nil
+}
+
+func genRandSerial() (*big.Int, error) {
+	serialBytes := make([]byte, 16)
+	_, err := rand.Read(serialBytes)
+	if err != nil {
+		return nil, fmt.Errorf("generate random serial id: %w", err)
+	}
+
+	serial := new(big.Int).SetBytes(serialBytes)
+	return serial, nil
 }

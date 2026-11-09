@@ -194,7 +194,7 @@ func TestRandomSerialNumber(t *testing.T) {
 	seen := make(map[string]struct{})
 
 	for range 8 {
-		serial, err := RandomSerialNumber()
+		serial, err := genRandSerial()
 		if err != nil {
 			t.Fatalf("RandomSerialNumber() error: %v", err)
 		}
