@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -187,6 +188,144 @@ func TestGenerateCertificateValidSignature(t *testing.T) {
 	}
 	if !ecdsa.Verify(&priv.PublicKey, digest[:], r, s) {
 		t.Error("the certificate's public key does not verify signatures from the private key")
+	}
+}
+
+func TestGenerateCertificateMLDSA(t *testing.T) {
+	tests := []struct {
+		name       string
+		keyType    kconfig.KeyType
+		wantAlgo   x509.SignatureAlgorithm
+		wantParams mldsa.Parameters
+	}{
+		{"ML-DSA-44", kconfig.KeyTypeMLDSA44, x509.MLDSA44, mldsa.MLDSA44()},
+		{"ML-DSA-65", kconfig.KeyTypeMLDSA65, x509.MLDSA65, mldsa.MLDSA65()},
+		{"ML-DSA-87", kconfig.KeyTypeMLDSA87, x509.MLDSA87, mldsa.MLDSA87()},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			priv, err := mldsa.GenerateKey(tt.wantParams)
+			if err != nil {
+				t.Fatalf("generate %s key: %v", tt.wantParams, err)
+			}
+
+			der, err := GenerateCertificate(priv, testConfig(t, string(tt.keyType), "sha512"))
+			if err != nil {
+				t.Fatalf("GenerateCertificate() error: %v", err)
+			}
+
+			cert, err := x509.ParseCertificate(der)
+			if err != nil {
+				t.Fatalf("ParseCertificate() error: %v", err)
+			}
+
+			if cert.SignatureAlgorithm != tt.wantAlgo {
+				t.Errorf("SignatureAlgorithm = %v, want %v", cert.SignatureAlgorithm, tt.wantAlgo)
+			}
+			if cert.PublicKeyAlgorithm != x509.MLDSA {
+				t.Errorf("PublicKeyAlgorithm = %v, want %v", cert.PublicKeyAlgorithm, x509.MLDSA)
+			}
+			pub, ok := cert.PublicKey.(*mldsa.PublicKey)
+			if !ok {
+				t.Fatalf("certificate public key is %T, want *mldsa.PublicKey", cert.PublicKey)
+			}
+			if pub.Parameters() != tt.wantParams {
+				t.Errorf("public key parameters = %v, want %v", pub.Parameters(), tt.wantParams)
+			}
+			if err := cert.CheckSignature(cert.SignatureAlgorithm, cert.RawTBSCertificate, cert.Signature); err != nil {
+				t.Errorf("CheckSignature() error: %v", err)
+			}
+		})
+	}
+}
+
+func TestGenerateCertificateMLDSAIgnoresHash(t *testing.T) {
+	// ML-DSA hashes itself; the configured module hash must not influence
+	// the certificate's signature algorithm.
+	priv, err := mldsa.GenerateKey(mldsa.MLDSA65())
+	if err != nil {
+		t.Fatalf("generate ML-DSA-65 key: %v", err)
+	}
+
+	for _, hash := range []kconfig.HashType{
+		kconfig.HashTypeSHA256,
+		kconfig.HashTypeSHA512,
+		kconfig.HashTypeSHA3512,
+	} {
+		der, err := GenerateCertificate(priv, testConfig(t, "MLDSA_65", string(hash)))
+		if err != nil {
+			t.Fatalf("GenerateCertificate(sha %s) error: %v", hash, err)
+		}
+
+		cert, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatalf("ParseCertificate(sha %s) error: %v", hash, err)
+		}
+		if cert.SignatureAlgorithm != x509.MLDSA65 {
+			t.Errorf("SignatureAlgorithm(sha %s) = %v, want %v", hash, cert.SignatureAlgorithm, x509.MLDSA65)
+		}
+	}
+}
+
+func TestExportCertificateMLDSA(t *testing.T) {
+	priv, err := mldsa.GenerateKey(mldsa.MLDSA87())
+	if err != nil {
+		t.Fatalf("generate ML-DSA-87 key: %v", err)
+	}
+	config := testConfig(t, "MLDSA_87", "sha512")
+
+	der, err := GenerateCertificate(priv, config)
+	if err != nil {
+		t.Fatalf("GenerateCertificate() error: %v", err)
+	}
+
+	base := t.TempDir()
+	prvPath, err := ExportCertificate(base, der, priv, config)
+	if err != nil {
+		t.Fatalf("ExportCertificate() error: %v", err)
+	}
+
+	// The seed-only PKCS#8 key must round-trip back to the same key.
+	keyData, err := os.ReadFile(filepath.Join(base, "keys", "signing_key.pem"))
+	if err != nil {
+		t.Fatalf("read key: %v", err)
+	}
+	block, _ := pem.Decode(keyData)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		t.Fatalf("key file has no PRIVATE KEY block: %v", block)
+	}
+	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		t.Fatalf("ParsePKCS8PrivateKey() error: %v", err)
+	}
+	parsedPriv, ok := parsed.(*mldsa.PrivateKey)
+	if !ok {
+		t.Fatalf("parsed key is %T, want *mldsa.PrivateKey", parsed)
+	}
+	if !parsedPriv.Equal(priv) {
+		t.Error("parsed private key differs from the generated one")
+	}
+
+	// The bundle's certificate must parse and attest the same key.
+	bundle, err := os.ReadFile(prvPath)
+	if err != nil {
+		t.Fatalf("read bundle: %v", err)
+	}
+	certBlock, rest := pem.Decode(bundle)
+	if certBlock == nil || certBlock.Type != "PRIVATE KEY" {
+		t.Fatalf("bundle has no PRIVATE KEY block: %v", certBlock)
+	}
+	certBlock, rest = pem.Decode(rest)
+	if certBlock == nil || certBlock.Type != "CERTIFICATE" {
+		t.Fatalf("bundle has no CERTIFICATE block: %v", certBlock)
+	}
+	cert, err := x509.ParseCertificate(certBlock.Bytes)
+	if err != nil {
+		t.Fatalf("ParseCertificate() error: %v", err)
+	}
+	if cert.SignatureAlgorithm != x509.MLDSA87 {
+		t.Errorf("bundle certificate SignatureAlgorithm = %v, want %v", cert.SignatureAlgorithm, x509.MLDSA87)
 	}
 }
 

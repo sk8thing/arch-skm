@@ -28,7 +28,17 @@ var sigAlgoMap = map[kconfig.KeyType]map[kconfig.HashType]x509.SignatureAlgorith
 	},
 }
 
+var mldsaSigAlgoMap = map[kconfig.KeyType]x509.SignatureAlgorithm{
+	kconfig.KeyTypeMLDSA44: x509.MLDSA44,
+	kconfig.KeyTypeMLDSA65: x509.MLDSA65,
+	kconfig.KeyTypeMLDSA87: x509.MLDSA87,
+}
+
 func getSignatureAlgorithm(keyType kconfig.KeyType, hashType kconfig.HashType) (x509.SignatureAlgorithm, error) {
+	if algo, found := mldsaSigAlgoMap[keyType]; found {
+		return algo, nil
+	}
+
 	algoMap, found := sigAlgoMap[keyType]
 	if !found {
 		return x509.UnknownSignatureAlgorithm, fmt.Errorf("unsupported key type: %v", keyType)
