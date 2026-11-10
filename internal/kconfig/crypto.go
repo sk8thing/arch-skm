@@ -11,6 +11,10 @@ const (
 	KeyTypeRSA   KeyType = "RSA"
 	KeyTypeECDSA KeyType = "ECDSA"
 
+	KeyTypeMLDSA44 KeyType = "MLDSA_44"
+	KeyTypeMLDSA65 KeyType = "MLDSA_65"
+	KeyTypeMLDSA87 KeyType = "MLDSA_87"
+
 	HashTypeSHA1    HashType = "sha1"
 	HashTypeSHA256  HashType = "sha256"
 	HashTypeSHA384  HashType = "sha384"
@@ -21,8 +25,16 @@ const (
 )
 
 var keyTypeMap = map[string]KeyType{
-	string(KeyTypeRSA):   KeyTypeRSA,
-	string(KeyTypeECDSA): KeyTypeECDSA,
+	string(KeyTypeRSA):     KeyTypeRSA,
+	string(KeyTypeECDSA):   KeyTypeECDSA,
+	string(KeyTypeMLDSA44): KeyTypeMLDSA44,
+	string(KeyTypeMLDSA65): KeyTypeMLDSA65,
+	string(KeyTypeMLDSA87): KeyTypeMLDSA87,
+
+	// Early development aliases
+	"ML_DSA_44": KeyTypeMLDSA44,
+	"ML_DSA_65": KeyTypeMLDSA65,
+	"ML_DSA_87": KeyTypeMLDSA87,
 }
 
 var hashTypeMap = map[string]HashType{

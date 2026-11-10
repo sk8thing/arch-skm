@@ -48,6 +48,40 @@ CONFIG_MODULE_SIG_HASH="sha512"
 			wantHash: HashTypeSHA512,
 		},
 		{
+			name: "ml-dsa-44",
+			content: `
+CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_44=y
+CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_65=n
+CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_87=n
+CONFIG_MODULE_SIG_HASH="sha512"
+`,
+			wantKey:  KeyTypeMLDSA44,
+			wantHash: HashTypeSHA512,
+		},
+		{
+			name:     "ml-dsa-65",
+			content:  "CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_65=y\nCONFIG_MODULE_SIG_HASH=sha3-512\n",
+			wantKey:  KeyTypeMLDSA65,
+			wantHash: HashTypeSHA3512,
+		},
+		{
+			name:     "ml-dsa-87 quoted",
+			content:  "CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_87=y\nCONFIG_MODULE_SIG_HASH=\"sha3-384\"\n",
+			wantKey:  KeyTypeMLDSA87,
+			wantHash: HashTypeSHA3384,
+		},
+		{
+			name:     "ml-dsa legacy spelling",
+			content:  "CONFIG_MODULE_SIG_KEY_TYPE_ML_DSA_44=y\nCONFIG_MODULE_SIG_HASH=sha256\n",
+			wantKey:  KeyTypeMLDSA44,
+			wantHash: HashTypeSHA256,
+		},
+		{
+			name:    "ml-dsa disabled",
+			content: "CONFIG_MODULE_SIG_KEY_TYPE_MLDSA_44=n\nCONFIG_MODULE_SIG_HASH=sha256\n",
+			wantErr: true,
+		},
+		{
 			name:     "sha1",
 			content:  "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y\nCONFIG_MODULE_SIG_HASH=sha1\n",
 			wantKey:  KeyTypeRSA,
