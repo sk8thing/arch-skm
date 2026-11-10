@@ -11,10 +11,13 @@ const (
 	KeyTypeRSA   KeyType = "RSA"
 	KeyTypeECDSA KeyType = "ECDSA"
 
-	HashTypeSHA1   HashType = "sha1"
-	HashTypeSHA256 HashType = "sha256"
-	HashTypeSHA384 HashType = "sha384"
-	HashTypeSHA512 HashType = "sha512"
+	HashTypeSHA1    HashType = "sha1"
+	HashTypeSHA256  HashType = "sha256"
+	HashTypeSHA384  HashType = "sha384"
+	HashTypeSHA512  HashType = "sha512"
+	HashTypeSHA3256 HashType = "sha3-256"
+	HashTypeSHA3384 HashType = "sha3-384"
+	HashTypeSHA3512 HashType = "sha3-512"
 )
 
 var keyTypeMap = map[string]KeyType{
@@ -23,10 +26,13 @@ var keyTypeMap = map[string]KeyType{
 }
 
 var hashTypeMap = map[string]HashType{
-	string(HashTypeSHA1):   HashTypeSHA1,
-	string(HashTypeSHA256): HashTypeSHA256,
-	string(HashTypeSHA384): HashTypeSHA384,
-	string(HashTypeSHA512): HashTypeSHA512,
+	string(HashTypeSHA1):    HashTypeSHA1,
+	string(HashTypeSHA256):  HashTypeSHA256,
+	string(HashTypeSHA384):  HashTypeSHA384,
+	string(HashTypeSHA512):  HashTypeSHA512,
+	string(HashTypeSHA3256): HashTypeSHA3256,
+	string(HashTypeSHA3384): HashTypeSHA3384,
+	string(HashTypeSHA3512): HashTypeSHA3512,
 }
 
 const (

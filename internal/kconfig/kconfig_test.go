@@ -54,13 +54,34 @@ CONFIG_MODULE_SIG_HASH="sha512"
 			wantHash: HashTypeSHA1,
 		},
 		{
+			name: "sha3 hashes",
+			content: `
+CONFIG_MODULE_SIG_KEY_TYPE_ECDSA=y
+CONFIG_MODULE_SIG_HASH="sha3-256"
+`,
+			wantKey:  KeyTypeECDSA,
+			wantHash: HashTypeSHA3256,
+		},
+		{
+			name:     "sha3-384",
+			content:  "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y\nCONFIG_MODULE_SIG_HASH=sha3-384\n",
+			wantKey:  KeyTypeRSA,
+			wantHash: HashTypeSHA3384,
+		},
+		{
+			name:     "sha3-512 quoted",
+			content:  "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y\nCONFIG_MODULE_SIG_HASH=\"sha3-512\"\n",
+			wantKey:  KeyTypeRSA,
+			wantHash: HashTypeSHA3512,
+		},
+		{
 			name:    "key type not enabled",
 			content: "CONFIG_MODULE_SIG_KEY_TYPE_RSA=n\nCONFIG_MODULE_SIG_HASH=sha256\n",
 			wantErr: true,
 		},
 		{
 			name:    "unsupported hash",
-			content: "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y\nCONFIG_MODULE_SIG_HASH=sha3-256\n",
+			content: "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y\nCONFIG_MODULE_SIG_HASH=md5\n",
 			wantErr: true,
 		},
 		{
