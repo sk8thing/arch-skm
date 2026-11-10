@@ -3,6 +3,7 @@ package keygen
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"os"
 	"path/filepath"
@@ -69,5 +70,62 @@ func TestGenerateKeyPairECDSA(t *testing.T) {
 	pub, ok := signer.Public().(*ecdsa.PublicKey)
 	if !ok || !pub.Equal(&priv.PublicKey) {
 		t.Error("signer did not expose the private key's public half")
+	}
+}
+
+func TestGenerateKeyPairMLDSA(t *testing.T) {
+	tests := []struct {
+		name     string
+		keyType  kconfig.KeyType
+		wantName string
+		wantPub  int
+	}{
+		{"mldsa-44", kconfig.KeyTypeMLDSA44, "ML-DSA-44", mldsa.MLDSA44PublicKeySize},
+		{"mldsa-65", kconfig.KeyTypeMLDSA65, "ML-DSA-65", mldsa.MLDSA65PublicKeySize},
+		{"mldsa-87", kconfig.KeyTypeMLDSA87, "ML-DSA-87", mldsa.MLDSA87PublicKeySize},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			signer, err := GenerateKeyPair(newTestConfig(t, tt.keyType))
+			if err != nil {
+				t.Fatalf("GenerateKeyPair() error: %v", err)
+			}
+
+			priv, ok := signer.(*mldsa.PrivateKey)
+			if !ok {
+				t.Fatalf("GenerateKeyPair() returned %T, want *mldsa.PrivateKey", signer)
+			}
+
+			pub := priv.PublicKey()
+			if pub.Parameters().String() != tt.wantName {
+				t.Errorf("parameters = %v, want %v", pub.Parameters(), tt.wantName)
+			}
+			if len(pub.Bytes()) != tt.wantPub {
+				t.Errorf("public key size = %d, want %d", len(pub.Bytes()), tt.wantPub)
+			}
+			if !pub.Equal(priv.Public().(*mldsa.PublicKey)) {
+				t.Error("signer did not expose the private key's public half")
+			}
+
+			// The key must round-trip through its seed encoding and produce
+			// verifiable signatures.
+			decoded, err := mldsa.NewPrivateKey(priv.PublicKey().Parameters(), priv.Bytes())
+			if err != nil {
+				t.Fatalf("NewPrivateKey() error: %v", err)
+			}
+			if !decoded.Equal(priv) {
+				t.Error("seed encoding does not round-trip to the same private key")
+			}
+
+			message := []byte("kernel module payload")
+			signature, err := priv.Sign(nil, message, nil)
+			if err != nil {
+				t.Fatalf("Sign() error: %v", err)
+			}
+			if err := mldsa.Verify(pub, message, signature, nil); err != nil {
+				t.Errorf("Verify() error: %v", err)
+			}
+		})
 	}
 }
