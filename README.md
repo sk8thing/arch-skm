@@ -22,7 +22,7 @@ A Go rewrite of [Arch-SKM](https://github.com/itoffshore/Arch-SKM) / [Gene's Arc
 
 1. Clone the official Arch Linux kernel packaging repo
 2. Patch the PKGBUILD to enable local module signing
-3. Generate ECDSA key pairs & inject them into the kernel config
+3. Generate signing key pairs & inject them into the kernel config
 4. Build the kernel with `makepkg`
 5. Install the signed kernel and its packages
 
