@@ -20,6 +20,7 @@ const (
 type Module struct {
 	Name       string
 	Configured bool
+	Dangling   bool
 }
 
 type statusEntry struct {
@@ -37,6 +38,9 @@ func (e statusEntry) Spec() string {
 }
 
 func (m Module) State() string {
+	if m.Dangling {
+		return "dangling"
+	}
 	if m.Configured {
 		return "configured"
 	}
@@ -45,13 +49,18 @@ func (m Module) State() string {
 }
 
 func Status(ctx context.Context) ([]Module, error) {
-	names, err := installedNames(ctx)
+	entries, err := installedEntries(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	modules := make([]Module, 0, len(names))
-	for _, name := range names {
+	installed := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		installed[entry.Name] = struct{}{}
+	}
+
+	modules := make([]Module, 0, len(entries))
+	for _, name := range statusNames(entries) {
 		configured, err := isConfigured(moduleConf(defaultDir, name))
 		if err != nil {
 			return nil, err
@@ -60,30 +69,52 @@ func Status(ctx context.Context) ([]Module, error) {
 		modules = append(modules, Module{Name: name, Configured: configured})
 	}
 
+	dangling, err := danglingConfigs(defaultDir, installed)
+	if err != nil {
+		return nil, err
+	}
+	for _, name := range dangling {
+		modules = append(modules, Module{Name: name, Configured: true, Dangling: true})
+	}
+
 	return modules, nil
 }
 
-func installedNames(ctx context.Context) ([]string, error) {
-	output, err := statusOutput(ctx)
+func danglingConfigs(dir string, installed map[string]struct{}) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read %s: %w", dir, err)
 	}
 
-	return statusNames(parseStatusEntries(output)), nil
-}
+	var names []string
+	for _, entry := range entries {
+		if entry.Name() == kernelSignConf {
+			continue
+		}
 
-func installedSet(ctx context.Context) (map[string]struct{}, error) {
-	names, err := installedNames(ctx)
-	if err != nil {
-		return nil, err
+		name, ok := strings.CutSuffix(entry.Name(), ".conf")
+		if !ok || name == "" {
+			continue
+		}
+		if _, ok := installed[name]; ok {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return nil, fmt.Errorf("access %s: %w", filepath.Join(dir, entry.Name()), err)
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			continue
+		}
+
+		names = append(names, name)
 	}
 
-	installed := make(map[string]struct{}, len(names))
-	for _, name := range names {
-		installed[name] = struct{}{}
-	}
-
-	return installed, nil
+	return names, nil
 }
 
 func installedEntries(ctx context.Context) ([]statusEntry, error) {

@@ -81,6 +81,18 @@ func moduleSpecs(entries []statusEntry, name string) []string {
 	return specs
 }
 
+func validateModule(name string, installed map[string]struct{}) error {
+	if err := validateName(name); err != nil {
+		return err
+	}
+
+	if _, ok := installed[name]; !ok {
+		return fmt.Errorf("module %q is not installed according to dkms status", name)
+	}
+
+	return nil
+}
+
 func rebuildModule(ctx context.Context, module string, stdin io.Reader, stdout, stderr io.Writer) error {
 	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 

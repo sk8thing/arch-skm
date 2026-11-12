@@ -14,11 +14,6 @@ import (
 )
 
 func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, stderr io.Writer) error {
-	installed, err := installedSet(ctx)
-	if err != nil {
-		return err
-	}
-
 	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 
 	source := filepath.Join(defaultDir, kernelSignConf)
@@ -32,7 +27,7 @@ func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, std
 
 	var errs []error
 	for _, name := range modules {
-		if err := validateModule(name, installed); err != nil {
+		if err := validateName(name); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -60,16 +55,11 @@ func Install(ctx context.Context, modules []string, stdin io.Reader, stdout, std
 }
 
 func Remove(ctx context.Context, modules []string, stdin io.Reader, stdout, stderr io.Writer) error {
-	installed, err := installedSet(ctx)
-	if err != nil {
-		return err
-	}
-
 	runner := command.Runner{Stdin: stdin, Stdout: stdout, Stderr: stderr}
 
 	var errs []error
 	for _, name := range modules {
-		if err := validateModule(name, installed); err != nil {
+		if err := validateName(name); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -124,18 +114,6 @@ func linkedTo(target, source string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("%s already exists and points to %s, not %s", target, dest, source)
-}
-
-func validateModule(name string, installed map[string]struct{}) error {
-	if err := validateName(name); err != nil {
-		return err
-	}
-
-	if _, ok := installed[name]; !ok {
-		return fmt.Errorf("module %q is not installed according to dkms status", name)
-	}
-
-	return nil
 }
 
 func validateName(name string) error {

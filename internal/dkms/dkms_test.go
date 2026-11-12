@@ -244,4 +244,76 @@ func TestModuleState(t *testing.T) {
 	if got := (Module{Name: "nvidia", Configured: false}).State(); got != "installed" {
 		t.Errorf("State() = %q, want installed", got)
 	}
+	if got := (Module{Name: "nvidia", Configured: true, Dangling: true}).State(); got != "dangling" {
+		t.Errorf("State() = %q, want dangling", got)
+	}
+}
+
+func TestDanglingConfigs(t *testing.T) {
+	dir := t.TempDir()
+	installed := map[string]struct{}{"nvidia": {}}
+
+	// Symlink for a module that is installed: not dangling.
+	if err := os.Symlink("/etc/dkms/kernel-sign.conf", filepath.Join(dir, "nvidia.conf")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Symlink for a module missing from dkms status: dangling.
+	if err := os.Symlink("/etc/dkms/kernel-sign.conf", filepath.Join(dir, "vboxhost.conf")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Regular file (e.g. a package's own dkms config): never dangling.
+	if err := os.WriteFile(filepath.Join(dir, "framework.conf"), []byte("# config\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// The shared hook itself: never dangling.
+	if err := os.WriteFile(filepath.Join(dir, "kernel-sign.conf"), []byte("# hook\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Non-.conf entries are ignored.
+	if err := os.WriteFile(filepath.Join(dir, "kernel-sign.sh"), []byte("#!/bin/sh\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// A directory named like a config is ignored.
+	if err := os.Mkdir(filepath.Join(dir, "weird.conf"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := danglingConfigs(dir, installed)
+	if err != nil {
+		t.Fatalf("danglingConfigs() error: %v", err)
+	}
+	want := []string{"vboxhost"}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Errorf("danglingConfigs() = %v, want %v", got, want)
+	}
+}
+
+func TestDanglingConfigsIgnoresKernelSignSymlink(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Symlink("/etc/dkms/kernel-sign.conf", filepath.Join(dir, "kernel-sign.conf")); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := danglingConfigs(dir, nil)
+	if err != nil {
+		t.Fatalf("danglingConfigs() error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("danglingConfigs() = %v, want no names", got)
+	}
+}
+
+func TestDanglingConfigsMissingDir(t *testing.T) {
+	got, err := danglingConfigs(filepath.Join(t.TempDir(), "nonexistent"), nil)
+	if err != nil {
+		t.Fatalf("danglingConfigs(missing dir) error: %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("danglingConfigs(missing dir) = %v, want no names", got)
+	}
 }

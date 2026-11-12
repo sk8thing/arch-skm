@@ -108,13 +108,13 @@ DKMS signs out-of-tree modules through a `POST_BUILD` hook. A kernel built with 
 `skmctl install [kernel]` overwrites both files from the kernel package, so the hook always matches the key embedded in that kernel.
 DKMS only reads `/etc/dkms/<package>.conf`, so signing must be opted into per package by symlinking that file under the package name.
 
-> **Prerequisite:** The `dkms` package must be installed for any `skmctl dkms` subcommand to work.
+> **Prerequisite:** The `dkms` package must be installed for `skmctl dkms status` and `skmctl dkms rebuild` to work.
 
 ### Subcommands
 
 | Command | Function |
 |---|---|
-| `skmctl dkms status` | List installed DKMS modules and their signing state |
+| `skmctl dkms status` | List DKMS modules, their signing state, and dangling configurations |
 | `skmctl dkms install [modules…]` | Enable signing for DKMS packages |
 | `skmctl dkms remove [modules…]` | Disable signing for DKMS packages |
 | `skmctl dkms rebuild [modules…]` | Rebuild DKMS modules for all kernels |
@@ -125,14 +125,16 @@ DKMS only reads `/etc/dkms/<package>.conf`, so signing must be opted into per pa
 $ skmctl dkms status
 nvidia: installed
 vboxhost: configured
+acpi_call: dangling
 ```
 
-Each line shows a unique DKMS package name and one of two states:
+Each line shows a unique DKMS package name and one of three states:
 
 | State | Meaning |
 |---|---|
 | `installed` | The module is installed but signing is not enabled |
 | `configured` | Signing is enabled (the `/etc/dkms/<package>.conf` symlink exists) |
+| `dangling` | A signing symlink exists but `dkms status` has no matching module (the package was probably uninstalled) |
 
 
 ### Enabling signing
@@ -147,13 +149,15 @@ This creates `/etc/dkms/nvidia.conf` as a symlink to `/etc/dkms/kernel-sign.conf
 skmctl dkms install nvidia vboxhost
 ```
 
-The command validates that each module is actually installed, it will refuse to configure a package that `skmctl dkms status` doesn't list. If a symlink already exists and points to the correct target, the command reports `already configured` and skips it.
+The command accepts any DKMS package name, so signing can be configured before the package itself is installed. If a symlink already exists and points to the correct target, the command reports `already configured` and skips it.
 
 To disable signing for a package, remove its configuration:
 
 ```bash
 skmctl dkms remove nvidia
 ```
+
+This also works for `dangling` entries, removing symlinks left behind by packages that are no longer installed.
 
 ### Rebuilding modules
 

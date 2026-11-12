@@ -7,13 +7,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const dkmsExample = `  # Show installed DKMS modules and their signing state
+const dkmsExample = `  # Show DKMS modules and their signing state
   skmctl dkms status
 
   # Enable module signing for DKMS packages
   skmctl dkms install nvidia vboxhost
 
-  # Disable module signing for a DKMS packages
+  # Disable module signing for DKMS packages, including dangling ones
   skmctl dkms remove nvidia vboxhost
 
   # Rebuild DKMS modules for all kernels
@@ -33,12 +33,15 @@ var dkmsCmd = &cobra.Command{
 	Long: `Manage which DKMS packages are signed with the kernel's out-of-tree key.
 
 DKMS reads /etc/dkms/<package>.conf, so signing is enabled per package by
-symlinking that file to /etc/dkms/kernel-sign.conf.`,
+symlinking that file to /etc/dkms/kernel-sign.conf.
+
+A symlink whose package no longer appears in dkms status is reported as
+dangling and can be removed with "skmctl dkms remove".`,
 }
 
 var dkmsStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show installed DKMS modules and whether signing is configured",
+	Short: "Show DKMS modules, their signing state, and dangling configurations",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modules, err := dkms.Status(cmd.Context())
